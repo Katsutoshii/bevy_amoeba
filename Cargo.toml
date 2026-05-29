@@ -1,0 +1,36 @@
+[package]
+edition = "2024"
+name = "bevy_amoeba"
+version = "0.18.0"
+authors = ["Josiah Putman <joshikatsu@gmail.com>"]
+description = "Bevy amoeba Bevy game engine."
+documentation = "https://docs.rs/bevy_amoeba/latest/bevy_amoeba"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/Katsutoshii/bevy_amoeba"
+repository = "https://github.com/Katsutoshii/bevy_amoeba"
+keywords = ["bevy"]
+readme = "README.md"
+exclude = ["assets/*"]
+
+[dependencies]
+bevy = { version = "0.18", default-features = false, features = [
+    "std",
+    "bevy_asset",
+    "bevy_image",
+    "bevy_pbr",
+    "bevy_picking",
+    "bevy_render",
+    "bevy_ui",
+    "bevy_window",
+    "mesh_picking",
+] }
+
+[dev-dependencies]
+bevy = { version = "0.18" }
+bevy-inspector-egui = { version = "0.36" }
+
+[features]
+debug = []
+
+[[example]]
+name = "basic"
