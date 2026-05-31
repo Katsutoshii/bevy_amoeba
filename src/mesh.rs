@@ -18,41 +18,6 @@ impl MeshBuilder {
     pub const ATTRIBUTE_SOFT_BODY: MeshVertexAttribute =
         MeshVertexAttribute::new("SoftBody", 0x7512b1e2bb023882, VertexFormat::Float32);
 
-    /// Compute a grid mesh of quads according to size.
-    pub fn grid(size: UVec2) -> Self {
-        let num_quads = size.x as usize * size.y as usize;
-        let mut builder = Self {
-            positions: Vec::with_capacity(num_quads * 4),
-            uvs: Vec::with_capacity(num_quads * 4),
-            indices: Vec::with_capacity(num_quads * 6),
-        };
-        let w = size.x;
-        for y in 0..size.y {
-            for x in 0..size.x {
-                let q = x + y * w;
-                let i = q * 4;
-                builder.positions.extend(
-                    // Square quad, side length 1.
-                    [
-                        [-0.5, -0.5, -0.5],
-                        [0.5, -0.5, -0.5],
-                        [0.5, 0.5, -0.5],
-                        [-0.5, 0.5, -0.5],
-                    ],
-                );
-                builder.uvs.extend(
-                    // [0,0] at top left, [1, 1] at bot right.
-                    [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
-                );
-                builder.indices.extend(
-                    // Two triangles to make up the quad.
-                    [i, i + 1, i + 2, i, i + 2, i + 3],
-                )
-            }
-        }
-        builder
-    }
-
     pub fn circle_ngon(radius: f32, subdivisions: u32) -> Self {
         let mut builder = Self {
             positions: Vec::with_capacity((subdivisions + 1) as usize),
