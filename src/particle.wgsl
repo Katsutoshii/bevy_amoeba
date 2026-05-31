@@ -13,11 +13,6 @@ struct ComputeInput {
     @builtin(global_invocation_id) id: vec3<u32>,
 };
 
-struct ComputeUniform {
-    num_particles: u32,
-    dt: f32,
-};
-
 const TAU: f32 = 6.28318531;
 const PI: f32 =  3.14159274;
 

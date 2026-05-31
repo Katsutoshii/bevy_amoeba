@@ -31,7 +31,7 @@ pub struct Particle2d {
 #[derive(Resource, ExtractResource, Clone)]
 pub struct Particle2dBuffer(pub Handle<ShaderStorageBuffer>);
 impl Particle2dBuffer {
-    pub const MAX_PARTICLES: u32 = 64;
+    pub const MAX_PARTICLES: u32 = 128;
 }
 
 impl FromWorld for Particle2dBuffer {

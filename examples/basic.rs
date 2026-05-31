@@ -2,9 +2,13 @@
 //! `cargo run --example basic`
 use std::f32::consts::PI;
 
-use bevy::input::common_conditions::input_just_pressed;
-use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
-use bevy::{input::common_conditions::input_toggle_active, prelude::*};
+use bevy::{
+    dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
+    input::common_conditions::input_just_pressed,
+    input::common_conditions::input_toggle_active,
+    pbr::wireframe::{WireframeConfig, WireframePlugin},
+    prelude::*,
+};
 
 use bevy_amoeba::{AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial};
 use bevy_egui::EguiPlugin;
@@ -17,6 +21,9 @@ fn main() {
         WireframePlugin::default(),
         EguiPlugin::default(),
         WorldInspectorPlugin::new(),
+        FpsOverlayPlugin {
+            config: FpsOverlayConfig::default(),
+        },
         AmoebaPlugin,
     ))
     .add_systems(Startup, setup);
@@ -35,7 +42,6 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<SoftBodyMaterial>>,
-    // mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     particles: Res<Particle2dBuffer>,
 ) {
@@ -47,13 +53,14 @@ fn setup(
             far: 2000.,
             ..default()
         }),
-        Transform::from_xyz(0.0, 0.0, 2.0).looking_at(Vec3::ZERO, Vec3::Z),
+        Transform {
+            translation: Vec3::new(0.0, 0.0, 2.0),
+            ..default()
+        },
     ));
     commands.spawn(DirectionalLight::default());
     commands.spawn((
-        Mesh3d(
-            meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES - 1).build()),
-        ),
+        Mesh3d(meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES).build())),
         MeshMaterial3d(materials.add(SoftBodyMaterial {
             color: Color::WHITE.to_linear(),
             color_texture: Some(asset_server.load("textures/bubble_7.png")),
