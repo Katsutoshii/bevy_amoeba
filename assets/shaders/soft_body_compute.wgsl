@@ -96,7 +96,6 @@ fn update(in: ComputeInput) {
     let position0 = get_position(i);
     particles[i].position = get_shrink_position(position0);
 
-    
     for (var s = 0; s < 3; s += 1) {   
         storageBarrier();
         particles[i].position = (
