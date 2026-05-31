@@ -10,7 +10,9 @@ use bevy::{
     prelude::*,
 };
 
-use bevy_amoeba::{AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial};
+use bevy_amoeba::{
+    AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial, SoftBodyNode, SoftBodyNodes,
+};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -41,6 +43,7 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut std_materials: ResMut<Assets<StandardMaterial>>,
     mut materials: ResMut<Assets<SoftBodyMaterial>>,
     asset_server: Res<AssetServer>,
     particles: Res<Particle2dBuffer>,
@@ -59,7 +62,46 @@ fn setup(
         },
     ));
     commands.spawn(DirectionalLight::default());
+
+    // Spawn nodes.
+    let circle = meshes.add(Circle { radius: 0.1 });
+    let white_material = std_materials.add(StandardMaterial {
+        base_color: Color::WHITE.into(),
+        unlit: true,
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    });
+    let node1 = commands
+        .spawn((
+            Name::new("Node1"),
+            SoftBodyNode,
+            Transform::from_xyz(-0.1, 0.1, -0.1),
+            Mesh3d(circle.clone()),
+            MeshMaterial3d(white_material.clone()),
+        ))
+        .id();
+    let node2 = commands
+        .spawn((
+            Name::new("Node2"),
+            SoftBodyNode,
+            Transform::from_xyz(-0.3, -0.3, -0.1),
+            Mesh3d(circle.clone()),
+            MeshMaterial3d(white_material.clone()),
+        ))
+        .id();
+    let node3 = commands
+        .spawn((
+            Name::new("Node3"),
+            SoftBodyNode,
+            Transform::from_xyz(0.2, 0.2, -0.1),
+            Mesh3d(circle.clone()),
+            MeshMaterial3d(white_material.clone()),
+        ))
+        .id();
+
+    // Spawn the mesh over the nodes.
     commands.spawn((
+        Name::new("SoftBodyMesh"),
         Mesh3d(meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES).build())),
         MeshMaterial3d(materials.add(SoftBodyMaterial {
             color: Color::WHITE.to_linear(),
@@ -69,6 +111,7 @@ fn setup(
             ..default()
         })),
         Transform { ..default() },
+        SoftBodyNodes(vec![node1, node2, node3]),
     ));
 
     let mut text = "Press 'R' to pause/resume rotation".to_string();

@@ -1,4 +1,9 @@
-use bevy::app::{App, Plugin};
+use bevy::{
+    app::{App, Plugin},
+    ecs::{component::Component, entity::Entity},
+    reflect::Reflect,
+    transform::components::Transform,
+};
 
 mod compute;
 mod mesh;
@@ -23,3 +28,10 @@ impl Plugin for AmoebaPlugin {
         ));
     }
 }
+
+#[derive(Component, Reflect)]
+#[require(Transform)]
+pub struct SoftBodyNodes(pub Vec<Entity>);
+
+#[derive(Component, Reflect)]
+pub struct SoftBodyNode;

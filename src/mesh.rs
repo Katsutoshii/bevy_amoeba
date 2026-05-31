@@ -3,7 +3,7 @@ use std::f32::consts::TAU;
 use bevy::{
     asset::RenderAssetUsages,
     math::UVec2,
-    mesh::{Indices, Mesh, PrimitiveTopology},
+    mesh::{Indices, Mesh, MeshVertexAttribute, PrimitiveTopology, VertexFormat},
 };
 
 /// Utility struct for building a mesh.
@@ -15,6 +15,9 @@ pub struct MeshBuilder {
 }
 
 impl MeshBuilder {
+    pub const ATTRIBUTE_SOFT_BODY: MeshVertexAttribute =
+        MeshVertexAttribute::new("SoftBody", 0x7512b1e2bb023882, VertexFormat::Float32);
+
     /// Compute a grid mesh of quads according to size.
     pub fn grid(size: UVec2) -> Self {
         let num_quads = size.x as usize * size.y as usize;
@@ -93,6 +96,7 @@ impl MeshBuilder {
 
     /// Produce a mesh from the accumulated attributes.
     pub fn build(self) -> Mesh {
+        let soft_body = vec![0.0; self.positions.len()];
         Mesh::new(
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::default(),
@@ -100,6 +104,7 @@ impl MeshBuilder {
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uvs)
         .with_inserted_indices(Indices::U32(self.indices))
+        .with_inserted_attribute(Self::ATTRIBUTE_SOFT_BODY, soft_body)
         .with_computed_smooth_normals()
     }
 }
