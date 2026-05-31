@@ -1,15 +1,25 @@
 //! Basic example rendering an amoeba.
 //! `cargo run --example basic`
-use bevy::{
-    input::common_conditions::input_just_pressed,
-    sprite_render::{Wireframe2dConfig, Wireframe2dPlugin},
-};
+use std::f32::consts::PI;
+
+use bevy::input::common_conditions::input_just_pressed;
+use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::{input::common_conditions::input_toggle_active, prelude::*};
+
+use bevy_amoeba::{AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial};
+use bevy_egui::EguiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     let mut app = App::new();
-    app.add_plugins((DefaultPlugins, Wireframe2dPlugin::default()))
-        .add_systems(Startup, setup);
+    app.add_plugins((
+        DefaultPlugins,
+        WireframePlugin::default(),
+        EguiPlugin::default(),
+        WorldInspectorPlugin::new(),
+        AmoebaPlugin,
+    ))
+    .add_systems(Startup, setup);
     app.add_systems(
         Update,
         toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)),
@@ -24,18 +34,34 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<SoftBodyMaterial>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
+    particles: Res<Particle2dBuffer>,
 ) {
-    commands.spawn(Camera2d);
-
     commands.spawn((
-        Mesh2d(meshes.add(Circle { radius: 50.0 })),
-        MeshMaterial2d(materials.add(ColorMaterial {
-            texture: Some(asset_server.load("textures/bubble_7.png")),
+        Camera3d::default(),
+        Projection::Perspective(PerspectiveProjection {
+            fov: PI / 2.0,
+            near: 0.1,
+            far: 2000.,
+            ..default()
+        }),
+        Transform::from_xyz(0.0, 0.0, 2.0).looking_at(Vec3::ZERO, Vec3::Z),
+    ));
+    commands.spawn(DirectionalLight::default());
+    commands.spawn((
+        Mesh3d(
+            meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES - 1).build()),
+        ),
+        MeshMaterial3d(materials.add(SoftBodyMaterial {
+            color: Color::WHITE.to_linear(),
+            color_texture: Some(asset_server.load("textures/bubble_7.png")),
+            particles: particles.0.clone(),
+            alpha_mode: AlphaMode::Blend,
             ..default()
         })),
-        Transform::from_xyz(0., 0., 0.),
+        Transform { ..default() },
     ));
 
     let mut text = "Press 'R' to pause/resume rotation".to_string();
@@ -52,11 +78,14 @@ fn setup(
     ));
 }
 
-fn toggle_wireframe(mut wireframe_config: ResMut<Wireframe2dConfig>) {
+fn toggle_wireframe(mut wireframe_config: ResMut<WireframeConfig>) {
     wireframe_config.global = !wireframe_config.global;
 }
 
-fn rotate(mut query: Query<&mut Transform, With<Mesh2d>>, time: Res<Time>) {
+fn rotate(
+    mut query: Query<&mut Transform, With<MeshMaterial3d<SoftBodyMaterial>>>,
+    time: Res<Time>,
+) {
     for mut transform in &mut query {
         transform.rotate_z(time.delta_secs() / 2.0);
     }
