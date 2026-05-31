@@ -2,7 +2,6 @@ use std::f32::consts::TAU;
 
 use bevy::{
     asset::RenderAssetUsages,
-    math::UVec2,
     mesh::{Indices, Mesh, MeshVertexAttribute, PrimitiveTopology, VertexFormat},
 };
 
