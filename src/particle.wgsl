@@ -2,6 +2,7 @@
 
 
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle2d>;
+@group(0) @binding(1) var<storage, read> nodes: array<vec2<f32>>;
 
 struct Particle2d {
     position: vec2<f32>,

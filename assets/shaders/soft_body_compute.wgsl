@@ -1,7 +1,7 @@
-#import bevy_amoeba::particle::{Particle, ComputeInput, ComputeUniform, particles, frand3, seed, pcg_hash, TAU, PI, frand};
+#import bevy_amoeba::particle::{Particle, ComputeInput, ComputeUniform, particles, nodes, frand3, seed, pcg_hash, TAU, PI, frand};
 
-@group(0) @binding(1) var<uniform> num_particles: u32;
-@group(0) @binding(2) var<uniform> dt: f32;
+@group(0) @binding(2) var<uniform> num_particles: u32;
+@group(0) @binding(3) var<uniform> dt: f32;
 
 const half3 = vec3<f32>(0.5, 0.5, 0.5);
 const white = vec4<f32>(1.0, 1.0, 1.0, 1.0);
@@ -11,13 +11,6 @@ const velocity_factor: f32 = 0.2;
 const effect_seed: u32 = 12345;
 
 const radius: f32 = 1.0;
-
-const num_points = 3;
-const points = array(
-    vec2<f32>(-0.1, 0.1),
-    vec2<f32>(-0.3, -0.3),
-    vec2<f32>(0.2, 0.2),
-);
 
 // Compute initial position from the given index.
 fn get_position(i: u32) -> vec2<f32> {
@@ -47,8 +40,8 @@ fn l2_squared(p: vec2<f32>) -> f32 {
 fn collides_with_any(position: vec2<f32>) -> bool {
     const r = 0.5;
     const r2 = r * r;
-    for (var i = 0; i < num_points; i += 1) {
-        let delta = position - points[i];
+    for (var i: u32 = 0; i < arrayLength(&nodes); i += 1) {
+        let delta = position - nodes[i];
         let d2 = l2_squared(delta);
         if (d2 <= r2) {
           return true;
@@ -58,7 +51,7 @@ fn collides_with_any(position: vec2<f32>) -> bool {
 }
 
 fn get_shrink_position(position0: vec2<f32>) -> vec2<f32> {
-    const step = 0.05;
+    const step = 0.002;
     for (var d: f32 = 2.0; d > 0.2; d -= step) {
       let position = position0 * d;
       if (collides_with_any(position)) {
@@ -66,6 +59,32 @@ fn get_shrink_position(position0: vec2<f32>) -> vec2<f32> {
       }
     }
     return position0;
+}
+
+fn get_closest_node(p: vec2<f32>) -> vec2<f32> {
+    var min_dist_sq = 1000000.0;
+    var min_c = p;
+    for (var i: u32 = 0; i < arrayLength(&nodes); i += 1) {
+        let c = nodes[i].xy;
+        let dist_sq = l2_squared(p - c);
+        if (dist_sq < min_dist_sq) {
+            min_dist_sq = dist_sq;
+            min_c = c;
+        }
+    }
+    return min_c;
+}
+
+fn compute_closest_point(p: vec2<f32>) -> vec2<f32> {
+    const r: f32 = 0.5;
+
+    let c = get_closest_node(p);
+    let d = p - c;
+    let dist = length(d);
+    if (dist < 0.0001) {
+        return c + vec2<f32>(0.0, r);
+    }
+    return (d / dist) * r + c;
 }
 
 fn get_spring_forces(i: u32, k: f32) -> vec2<f32> {
@@ -76,7 +95,6 @@ fn get_spring_forces(i: u32, k: f32) -> vec2<f32> {
 }
 
 // Initialize the velocity of each particle.
-// Positions are in a circle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn init(in: ComputeInput) {
     let i = in.id.x;
@@ -84,17 +102,31 @@ fn init(in: ComputeInput) {
     
     let position0 = get_position(i);
     particles[i].position = get_shrink_position(position0);
+    // particles[i].position = compute_closest_point(position0); // TODO: figure out why this is different.
     particles[i].velocity = get_velocity(i);
     particles[i].color = white;
+
+    
+    for (var s = 0; s < 3; s += 1) {   
+        storageBarrier();
+        particles[i].position = (
+                particles[i].position
+                + particles[(i + 2) % num_particles].position
+                + particles[(i + 1) % num_particles].position
+                + particles[(i - 1) % num_particles].position
+                + particles[(i - 2) % num_particles].position
+            ) / 5.0;
+    }
 }
 
-// Update the features of each particle.
+// Update positions of each particle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn update(in: ComputeInput) {
     let i = in.id.x;
 
     let position0 = get_position(i);
     particles[i].position = get_shrink_position(position0);
+    // particles[i].position = compute_closest_point(position0);
 
     for (var s = 0; s < 3; s += 1) {   
         storageBarrier();

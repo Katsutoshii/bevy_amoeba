@@ -1,12 +1,8 @@
-use bevy::{
-    app::{App, Plugin},
-    ecs::{component::Component, entity::Entity},
-    reflect::Reflect,
-    transform::components::Transform,
-};
+use bevy::app::{App, Plugin};
 
 mod compute;
 mod mesh;
+mod nodes;
 mod particle;
 mod soft_body_compute;
 mod soft_body_material;
@@ -14,6 +10,7 @@ mod soft_body_material;
 pub use crate::{
     compute::{ComputeShader, ComputeShaderPlugin},
     mesh::MeshBuilder,
+    nodes::{SoftBodyNode, SoftBodyNodesBuffer},
     particle::{Particle2d, Particle2dBuffer},
     soft_body_material::SoftBodyMaterial,
 };
@@ -23,15 +20,9 @@ impl Plugin for AmoebaPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             particle::Particle2dPlugin,
+            nodes::NodesPlugin,
             soft_body_material::SoftBodyMaterial2dPlugin,
             soft_body_compute::SoftBodyComputePlugin,
         ));
     }
 }
-
-#[derive(Component, Reflect)]
-#[require(Transform)]
-pub struct SoftBodyNodes(pub Vec<Entity>);
-
-#[derive(Component, Reflect)]
-pub struct SoftBodyNode;

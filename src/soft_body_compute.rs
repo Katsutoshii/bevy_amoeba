@@ -18,7 +18,7 @@ use bevy::{
     shader::ShaderRef,
 };
 
-use crate::{ComputeShader, ComputeShaderPlugin, Particle2dBuffer};
+use crate::{ComputeShader, ComputeShaderPlugin, Particle2dBuffer, nodes::SoftBodyNodesBuffer};
 
 pub struct SoftBodyComputePlugin;
 impl Plugin for SoftBodyComputePlugin {
@@ -30,12 +30,15 @@ impl Plugin for SoftBodyComputePlugin {
 
 // This is the struct that will be passed to your shader
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Resource, ExtractResource)]
-struct SoftBodyCompute {
+pub struct SoftBodyCompute {
     #[storage(0, visibility(compute))]
-    particles: Handle<ShaderStorageBuffer>,
-    #[uniform(1)]
-    num_particles: u32,
+    pub particles: Handle<ShaderStorageBuffer>,
+    #[storage(1, read_only, visibility(compute))]
+    pub nodes: Handle<ShaderStorageBuffer>,
+
     #[uniform(2)]
+    num_particles: u32,
+    #[uniform(3)]
     dt: f32,
 }
 impl FromWorld for SoftBodyCompute {
@@ -44,6 +47,7 @@ impl FromWorld for SoftBodyCompute {
             dt: 0.005,
             num_particles: Particle2dBuffer::MAX_PARTICLES,
             particles: world.resource::<Particle2dBuffer>().0.clone(),
+            nodes: world.resource::<SoftBodyNodesBuffer>().0.clone(),
         }
     }
 }

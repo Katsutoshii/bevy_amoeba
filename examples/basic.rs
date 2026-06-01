@@ -10,9 +10,7 @@ use bevy::{
     prelude::*,
 };
 
-use bevy_amoeba::{
-    AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial, SoftBodyNode, SoftBodyNodes,
-};
+use bevy_amoeba::{AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial, SoftBodyNode};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -100,19 +98,22 @@ fn setup(
         .id();
 
     // Spawn the mesh over the nodes.
-    commands.spawn((
-        Name::new("SoftBodyMesh"),
-        Mesh3d(meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES).build())),
-        MeshMaterial3d(materials.add(SoftBodyMaterial {
-            color: Color::WHITE.to_linear(),
-            color_texture: Some(asset_server.load("textures/bubble_7.png")),
-            particles: particles.0.clone(),
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        })),
-        Transform { ..default() },
-        SoftBodyNodes(vec![node1, node2, node3]),
-    ));
+    commands
+        .spawn((
+            Name::new("SoftBodyMesh"),
+            Mesh3d(
+                meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES).build()),
+            ),
+            MeshMaterial3d(materials.add(SoftBodyMaterial {
+                color: Color::WHITE.to_linear(),
+                color_texture: Some(asset_server.load("textures/bubble_7.png")),
+                particles: particles.0.clone(),
+                alpha_mode: AlphaMode::Blend,
+                ..default()
+            })),
+            Transform { ..default() },
+        ))
+        .add_children(&[node1, node2, node3]);
 
     let mut text = "Press 'R' to pause/resume rotation".to_string();
     text.push_str("\nPress 'Space' to toggle wireframes");
