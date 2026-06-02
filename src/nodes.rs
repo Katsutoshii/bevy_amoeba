@@ -67,7 +67,7 @@ impl SoftBodyNodesBuffer {
 pub struct SoftBodyNode;
 impl SoftBodyNode {
     pub fn update(mut query: Query<&mut Transform, With<Self>>, time: Res<Time>) {
-        let alpha = 0.002;
+        let alpha = 0.0015;
         let omega = 2.0;
         for (i, mut transform) in query.iter_mut().enumerate() {
             let phi = i as f32;

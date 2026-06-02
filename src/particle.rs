@@ -17,6 +17,7 @@ use bevy::{
 pub struct Particle2dPlugin;
 impl Plugin for Particle2dPlugin {
     fn build(&self, app: &mut bevy::app::App) {
+        load_shader_library!(app, "rand.wgsl");
         load_shader_library!(app, "particle.wgsl");
         app.init_resource::<Particle2dBuffer>();
     }

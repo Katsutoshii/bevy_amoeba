@@ -73,7 +73,7 @@ fn setup(
         .spawn((
             Name::new("Node1"),
             SoftBodyNode,
-            Transform::from_xyz(-0.1, 0.1, -0.1),
+            Transform::from_xyz(0.1, -0.1, -0.1),
             Mesh3d(circle.clone()),
             MeshMaterial3d(white_material.clone()),
         ))
@@ -82,7 +82,7 @@ fn setup(
         .spawn((
             Name::new("Node2"),
             SoftBodyNode,
-            Transform::from_xyz(-0.3, -0.3, -0.1),
+            Transform::from_xyz(0.3, 0.3, -0.1),
             Mesh3d(circle.clone()),
             MeshMaterial3d(white_material.clone()),
         ))
@@ -91,7 +91,7 @@ fn setup(
         .spawn((
             Name::new("Node3"),
             SoftBodyNode,
-            Transform::from_xyz(0.2, 0.2, -0.1),
+            Transform::from_xyz(-0.2, -0.2, -0.1),
             Mesh3d(circle.clone()),
             MeshMaterial3d(white_material.clone()),
         ))
