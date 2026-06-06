@@ -10,9 +10,10 @@ use bevy::{
         world::{FromWorld, World},
     },
     math::UVec3,
-    reflect::TypePath,
+    reflect::{Reflect, TypePath},
     render::{
-        extract_resource::ExtractResource, render_resource::AsBindGroup,
+        extract_resource::ExtractResource,
+        render_resource::{AsBindGroup, ShaderType},
         storage::ShaderStorageBuffer,
     },
     shader::ShaderRef,
@@ -30,24 +31,33 @@ impl Plugin for SoftBodyComputePlugin {
         app.add_plugins((ComputeShaderPlugin::<SoftBodyCompute>::default(),));
     }
 }
+#[derive(ShaderType, Reflect, Clone, Debug)]
+pub struct SoftBodyComputeUniform {
+    pub num_vertices_per_instance: u32,
+}
+impl SoftBodyComputeUniform {
+    const DEFAULT: Self = Self {
+        num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
+    };
+}
 
 // This is the struct that will be passed to your shader
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Resource, ExtractResource)]
 pub struct SoftBodyCompute {
-    #[storage(0, visibility(compute))]
-    pub vertices: Handle<ShaderStorageBuffer>,
-    #[storage(1, read_only, visibility(compute))]
-    pub nodes: Handle<ShaderStorageBuffer>,
-    #[storage(2, read_only, visibility(compute))]
-    pub instances: Handle<ShaderStorageBuffer>,
+    #[uniform(0)]
+    uniforms: SoftBodyComputeUniform,
 
-    #[uniform(3)]
-    num_vertices_per_instance: u32,
+    #[storage(1, visibility(compute))]
+    pub vertices: Handle<ShaderStorageBuffer>,
+    #[storage(2, read_only, visibility(compute))]
+    pub nodes: Handle<ShaderStorageBuffer>,
+    #[storage(3, read_only, visibility(compute))]
+    pub instances: Handle<ShaderStorageBuffer>,
 }
 impl FromWorld for SoftBodyCompute {
     fn from_world(world: &mut World) -> Self {
         Self {
-            num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
+            uniforms: SoftBodyComputeUniform::DEFAULT.clone(),
             vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
             instances: world.resource::<SoftBodyInstanceBuffer>().0.clone(),
             nodes: world.resource::<SoftBodyNode2dBuffer>().0.clone(),

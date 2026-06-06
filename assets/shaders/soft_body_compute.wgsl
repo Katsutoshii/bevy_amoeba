@@ -2,15 +2,17 @@
 #import bevy_amoeba::nodes::SoftBodyNode2d;
 #import bevy_amoeba::instances::SoftBodyInstanceData;
 
-
+struct SoftBodyComputeUniform {
+    num_vertices_per_instance: u32,
+};
 struct ComputeInput {
     @builtin(global_invocation_id) id: vec3<u32>,
 };
 
-@group(0) @binding(0) var<storage, read_write> vertices: array<SoftBodyVertex2d>;
-@group(0) @binding(1) var<storage, read> nodes: array<SoftBodyNode2d>;
-@group(0) @binding(2) var<storage, read> instances: array<SoftBodyInstanceData>;
-@group(0) @binding(3) var<uniform> num_vertices_per_instance: u32;
+@group(0) @binding(0) var<uniform> uniforms: SoftBodyComputeUniform;
+@group(0) @binding(1) var<storage, read_write> vertices: array<SoftBodyVertex2d>;
+@group(0) @binding(2) var<storage, read> nodes: array<SoftBodyNode2d>;
+@group(0) @binding(3) var<storage, read> instances: array<SoftBodyInstanceData>;
 
 const TAU: f32 = 6.28318531;
 const PI: f32 =  3.14159274;
@@ -108,7 +110,7 @@ fn mean_position5(vi: u32, n: u32, o: i32) -> vec2<f32> {
 // Initialize the velocity of each particle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn init(in: ComputeInput) {
-    let n: u32 = num_vertices_per_instance;
+    let n: u32 = uniforms.num_vertices_per_instance;
     let i: u32 = in.id.x;
     let ii: u32 = in.id.y;
     let vi: u32 = ii * n + i;

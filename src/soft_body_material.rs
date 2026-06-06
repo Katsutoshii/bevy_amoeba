@@ -5,20 +5,24 @@ use bevy::{
         Handle,
         // AssetPath, embedded_asset, embedded_path
     },
-    color::LinearRgba,
+    color::{Color, LinearRgba},
     ecs::resource::Resource,
     image::Image,
     mesh::{Mesh, MeshVertexBufferLayoutRef},
     pbr::{Material, MaterialPipeline, MaterialPipelineKey, MaterialPlugin},
-    reflect::TypePath,
+    reflect::{Reflect, TypePath},
     render::{
         alpha::AlphaMode,
         extract_resource::ExtractResource,
-        render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError},
+        render_resource::{
+            AsBindGroup, RenderPipelineDescriptor, ShaderType, SpecializedMeshPipelineError,
+        },
         storage::ShaderStorageBuffer,
     },
     shader::ShaderRef,
 };
+
+use crate::SoftBodyVertex2dBuffer;
 
 #[derive(Default)]
 pub struct SoftBodyMaterial2dPlugin;
@@ -34,16 +38,13 @@ impl Plugin for SoftBodyMaterial2dPlugin {
 #[derive(Asset, TypePath, AsBindGroup, Default, Debug, Clone, Resource, ExtractResource)]
 pub struct SoftBodyMaterial {
     #[uniform(0)]
-    pub color: LinearRgba,
+    pub uniforms: SoftBodyMaterialUniform,
 
-    #[uniform(1)]
-    pub num_vertices_per_instance: u32,
-
-    #[texture(2)]
-    #[sampler(3)]
+    #[texture(1)]
+    #[sampler(2)]
     pub color_texture: Option<Handle<Image>>,
 
-    #[storage(4, read_only)]
+    #[storage(3, read_only)]
     pub vertices: Handle<ShaderStorageBuffer>,
 
     pub alpha_mode: AlphaMode,
@@ -73,5 +74,19 @@ impl Material for SoftBodyMaterial {
         ])?;
         descriptor.vertex.buffers = vec![vertex_layout];
         Ok(())
+    }
+}
+
+#[derive(ShaderType, Clone, Debug, Reflect)]
+pub struct SoftBodyMaterialUniform {
+    pub color: LinearRgba,
+    pub num_vertices_per_instance: u32,
+}
+impl Default for SoftBodyMaterialUniform {
+    fn default() -> Self {
+        Self {
+            color: Color::WHITE.into(),
+            num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
+        }
     }
 }

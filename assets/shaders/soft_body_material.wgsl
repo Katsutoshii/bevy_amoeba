@@ -4,11 +4,14 @@
 #import bevy_pbr::{mesh_view_bindings::globals};
 #import bevy_amoeba::vertices::SoftBodyVertex2d;
 
-@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> color: vec4<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(1) var<uniform> num_vertices_per_instance: u32;
-@group(#{MATERIAL_BIND_GROUP}) @binding(2) var color_texture: texture_2d<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(3) var color_texture_sampler: sampler;
-@group(#{MATERIAL_BIND_GROUP}) @binding(4) var<storage, read> vertices: array<SoftBodyVertex2d>;
+struct SoftBodyMaterialUniform {
+    color: vec4<f32>,
+    num_vertices_per_instance: u32,
+}
+@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> uniforms: SoftBodyMaterialUniform;
+@group(#{MATERIAL_BIND_GROUP}) @binding(1) var color_texture: texture_2d<f32>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(2) var color_texture_sampler: sampler;
+@group(#{MATERIAL_BIND_GROUP}) @binding(3) var<storage, read> vertices: array<SoftBodyVertex2d>;
 
 struct Vertex {
     @builtin(vertex_index) index: u32,
@@ -24,9 +27,8 @@ struct VertexOutput {
 };
 
 fn get_clip_position(vertex: Vertex) -> vec4<f32> {
-    let n = num_vertices_per_instance;
+    let n = uniforms.num_vertices_per_instance;
     let vi = vertex.index;
-    // let ii = vertex.instance_index;
     let ii = get_tag(vertex.instance_index);
     return mesh_position_local_to_clip(
         get_world_from_local(vertex.instance_index),
@@ -46,5 +48,5 @@ fn vertex(vertex: Vertex) -> VertexOutput {
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
     let vertex_index = input.vertex_index;
-    return color * textureSample(color_texture, color_texture_sampler, input.uv);
+    return uniforms.color * textureSample(color_texture, color_texture_sampler, input.uv);
 }
