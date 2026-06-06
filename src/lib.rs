@@ -9,7 +9,7 @@ mod soft_body_material;
 
 pub use crate::{
     compute::{ComputeShader, ComputeShaderPlugin},
-    mesh::MeshBuilder,
+    mesh::CircleNGon,
     nodes::{SoftBodyNode, SoftBodyNodesBuffer},
     particle::{Particle2d, Particle2dBuffer},
     soft_body_material::SoftBodyMaterial,

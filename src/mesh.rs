@@ -2,73 +2,77 @@ use std::f32::consts::TAU;
 
 use bevy::{
     asset::RenderAssetUsages,
-    mesh::{Indices, Mesh, MeshVertexAttribute, PrimitiveTopology, VertexFormat},
+    mesh::{
+        Indices, Mesh, MeshBuilder, MeshVertexAttribute, Meshable, PrimitiveTopology, VertexFormat,
+    },
 };
 
-/// Utility struct for building a mesh.
-#[derive(Default)]
-pub struct MeshBuilder {
-    pub positions: Vec<[f32; 3]>,
-    pub uvs: Vec<[f32; 2]>,
-    pub indices: Vec<u32>,
+#[derive(Clone, Copy)]
+pub struct CircleNGon {
+    pub n: usize,
+    pub r: f32,
 }
-
-impl MeshBuilder {
+impl CircleNGon {
     pub const ATTRIBUTE_SOFT_BODY: MeshVertexAttribute =
         MeshVertexAttribute::new("SoftBody", 0x7512b1e2bb023882, VertexFormat::Float32);
+}
+impl Meshable for CircleNGon {
+    type Output = CircleNGonMeshBuilder;
+    fn mesh(&self) -> Self::Output {
+        CircleNGonMeshBuilder(*self)
+    }
+}
 
-    pub fn circle_ngon(radius: f32, subdivisions: u32) -> Self {
-        let mut builder = Self {
-            positions: Vec::with_capacity((subdivisions + 1) as usize),
-            uvs: Vec::with_capacity((subdivisions + 1) as usize),
-            indices: Vec::with_capacity((subdivisions * 3) as usize),
-        };
+pub struct CircleNGonMeshBuilder(CircleNGon);
+impl MeshBuilder for CircleNGonMeshBuilder {
+    fn build(&self) -> Mesh {
+        let CircleNGon { n, r } = self.0;
+
+        let mut positions = Vec::with_capacity(n + 1);
+        let mut uvs = Vec::with_capacity(n + 1);
+        let mut indices = Vec::<u32>::with_capacity(n * 3);
 
         // Center vertex (Index 0)
-        builder.positions.push([0.0, 0.0, 0.0]);
-        builder.uvs.push([0.5, 0.5]); // Center of UV texture space
+        positions.push([0.0, 0.0, 0.0]);
+        uvs.push([0.5, 0.5]); // Center of UV texture space
 
         // Perimeter vertices (Indices 1 to N)
-        for i in 0..subdivisions {
-            let angle = (i as f32 / subdivisions as f32) * TAU;
+        for i in 0..n {
+            let angle = (i as f32 / n as f32) * TAU;
 
-            let x = radius * angle.cos();
-            let y = radius * angle.sin();
+            let x = r * angle.cos();
+            let y = r * angle.sin();
 
-            builder.positions.push([x, y, 0.0]);
+            positions.push([x, y, 0.0]);
 
             // Map [-radius, radius] coordinates to a normalized [0.0, 1.0] UV range
-            let u = (x / radius) * 0.5 + 0.5;
-            let v = (-y / radius) * 0.5 + 0.5;
-            builder.uvs.push([u, v]);
+            let u = (x / r) * 0.5 + 0.5;
+            let v = (-y / r) * 0.5 + 0.5;
+            uvs.push([u, v]);
         }
 
         // Build the N-gon fan by linking the center vertex (0) to outer pairs
-        for i in 1..subdivisions {
-            builder.indices.push(0); // Center
-            builder.indices.push(i); // Current outer vertex
-            builder.indices.push(i + 1); // Next outer vertex
+        for i in 1..n {
+            indices.extend([0, i as u32, (i + 1) as u32]);
         }
 
         // Final triangle: connects the last vertex back to the first perimeter vertex (1)
-        builder.indices.push(0);
-        builder.indices.push(subdivisions);
-        builder.indices.push(1);
+        indices.extend([0, n as u32, 1]);
 
-        builder
-    }
-
-    /// Produce a mesh from the accumulated attributes.
-    pub fn build(self) -> Mesh {
-        let soft_body = vec![0.0; self.positions.len()];
         Mesh::new(
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::default(),
         )
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uvs)
-        .with_inserted_indices(Indices::U32(self.indices))
-        .with_inserted_attribute(Self::ATTRIBUTE_SOFT_BODY, soft_body)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
+        .with_inserted_indices(Indices::U32(indices))
+        .with_inserted_attribute(CircleNGon::ATTRIBUTE_SOFT_BODY, vec![0.0; n + 1])
         .with_computed_smooth_normals()
+    }
+}
+
+impl Into<Mesh> for CircleNGon {
+    fn into(self) -> Mesh {
+        self.mesh().build()
     }
 }

@@ -4,13 +4,12 @@ use std::f32::consts::PI;
 
 use bevy::{
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
-    input::common_conditions::input_just_pressed,
-    input::common_conditions::input_toggle_active,
+    input::common_conditions::{input_just_pressed, input_toggle_active},
     pbr::wireframe::{WireframeConfig, WireframePlugin},
     prelude::*,
 };
 
-use bevy_amoeba::{AmoebaPlugin, MeshBuilder, Particle2dBuffer, SoftBodyMaterial, SoftBodyNode};
+use bevy_amoeba::{AmoebaPlugin, CircleNGon, Particle2dBuffer, SoftBodyMaterial, SoftBodyNode};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -101,9 +100,10 @@ fn setup(
     commands
         .spawn((
             Name::new("SoftBodyMesh"),
-            Mesh3d(
-                meshes.add(MeshBuilder::circle_ngon(1.0, Particle2dBuffer::MAX_PARTICLES).build()),
-            ),
+            Mesh3d(meshes.add(CircleNGon {
+                n: Particle2dBuffer::MAX_PARTICLES as usize,
+                r: 1.0,
+            })),
             MeshMaterial3d(materials.add(SoftBodyMaterial {
                 color: Color::WHITE.to_linear(),
                 color_texture: Some(asset_server.load("textures/bubble_7.png")),
