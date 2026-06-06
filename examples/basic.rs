@@ -68,7 +68,7 @@ fn setup(
     let node1 = commands
         .spawn((
             Name::new("Node1"),
-            SoftBodyNode,
+            SoftBodyNode { radius: 0.6 },
             Transform::from_xyz(0.1, -0.1, -0.1),
             Mesh3d(circle.clone()),
             MeshMaterial3d(white_material.clone()),
@@ -77,7 +77,7 @@ fn setup(
     let node2 = commands
         .spawn((
             Name::new("Node2"),
-            SoftBodyNode,
+            SoftBodyNode { radius: 0.5 },
             Transform::from_xyz(0.3, 0.3, -0.1),
             Mesh3d(circle.clone()),
             MeshMaterial3d(white_material.clone()),
@@ -86,7 +86,7 @@ fn setup(
     let node3 = commands
         .spawn((
             Name::new("Node3"),
-            SoftBodyNode,
+            SoftBodyNode { radius: 0.4 },
             Transform::from_xyz(-0.2, -0.2, -0.1),
             Mesh3d(circle.clone()),
             MeshMaterial3d(white_material.clone()),

@@ -1,4 +1,5 @@
 #import bevy_amoeba::vertices::SoftBodyVertex2d;
+#import bevy_amoeba::nodes::SoftBodyNode2d;
 
 
 struct ComputeInput {
@@ -6,7 +7,7 @@ struct ComputeInput {
 };
 
 @group(0) @binding(0) var<storage, read_write> vertices: array<SoftBodyVertex2d>;
-@group(0) @binding(1) var<storage, read> nodes: array<vec2<f32>>;
+@group(0) @binding(1) var<storage, read> nodes: array<SoftBodyNode2d>;
 @group(0) @binding(2) var<uniform> num_vertices: u32;
 
 const TAU: f32 = 6.28318531;
@@ -68,8 +69,9 @@ fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
     var min_d2 = 1000000.0;
     var min_q = p;
     for (var i: u32 = 0; i < arrayLength(&nodes); i += 1) {
-        let c = nodes[i].xy;
-        let q = get_closest_circle_line_intersection(c, 0.5, p, o);
+        let c = nodes[i].position.xy;
+        let r = nodes[i].radius;
+        let q = get_closest_circle_line_intersection(c, r, p, o);
         let d2 = l2_squared(p - q);
         if (d2 < min_d2) {
             min_d2 = d2;

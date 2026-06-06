@@ -19,7 +19,7 @@ use bevy::{
 };
 
 use crate::{
-    ComputeShader, ComputeShaderPlugin, SoftBodyVertex2dBuffer, nodes::SoftBodyNodesBuffer,
+    ComputeShader, ComputeShaderPlugin, SoftBodyVertex2dBuffer, nodes::SoftBodyNode2dBuffer,
 };
 
 pub struct SoftBodyComputePlugin;
@@ -46,7 +46,7 @@ impl FromWorld for SoftBodyCompute {
         Self {
             num_vertices: SoftBodyVertex2dBuffer::NUM_VERTICES,
             vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
-            nodes: world.resource::<SoftBodyNodesBuffer>().0.clone(),
+            nodes: world.resource::<SoftBodyNode2dBuffer>().0.clone(),
         }
     }
 }

@@ -14,7 +14,11 @@ use bevy::{
     math::{Vec2, Vec3Swizzles},
     pbr::MeshMaterial3d,
     reflect::Reflect,
-    render::{extract_resource::ExtractResource, storage::ShaderStorageBuffer},
+    render::{
+        extract_resource::ExtractResource, render_resource::ShaderType,
+        storage::ShaderStorageBuffer,
+    },
+    shader::load_shader_library,
     time::Time,
     transform::{
         TransformSystems,
@@ -27,29 +31,36 @@ use crate::{SoftBodyMaterial, soft_body_compute::SoftBodyCompute};
 pub struct SoftBodyNodesPlugin;
 impl Plugin for SoftBodyNodesPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app.init_resource::<SoftBodyNodesBuffer>().add_systems(
+        load_shader_library!(app, "nodes.wgsl");
+        app.init_resource::<SoftBodyNode2dBuffer>().add_systems(
             Update,
             (
                 SoftBodyNodes::update.after(TransformSystems::Propagate),
                 SoftBodyNode::update,
-                SoftBodyNodesBuffer::update,
+                SoftBodyNode2dBuffer::update,
             )
                 .chain(),
         );
     }
 }
 
+#[derive(Default, ShaderType, Copy, Clone, Debug)]
+pub struct SoftBodyNode2d {
+    pub position: Vec2,
+    pub radius: f32,
+}
+
 #[derive(Resource, Clone, ExtractResource)]
-pub struct SoftBodyNodesBuffer(pub Handle<ShaderStorageBuffer>);
-impl FromWorld for SoftBodyNodesBuffer {
+pub struct SoftBodyNode2dBuffer(pub Handle<ShaderStorageBuffer>);
+impl FromWorld for SoftBodyNode2dBuffer {
     fn from_world(world: &mut World) -> Self {
         Self(world.add_asset(ShaderStorageBuffer::from(vec![
-            Vec2::ONE;
+            SoftBodyNode2d::default();
             Self::MAX_NODES as usize
         ])))
     }
 }
-impl SoftBodyNodesBuffer {
+impl SoftBodyNode2dBuffer {
     pub const MAX_NODES: u32 = 16;
 
     /// Copy relative positions into the nodes buffer.
@@ -57,15 +68,18 @@ impl SoftBodyNodesBuffer {
         mut compute: ResMut<SoftBodyCompute>,
         mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
         query: Query<(&GlobalTransform, &SoftBodyNodes), With<MeshMaterial3d<SoftBodyMaterial>>>,
-        node_transforms: Query<&GlobalTransform, With<SoftBodyNode>>,
+        node_transforms: Query<(&GlobalTransform, &SoftBodyNode)>,
     ) {
         let buffer = buffers.get_mut(&compute.nodes).unwrap();
         let mut all_nodes = Vec::with_capacity(Self::MAX_NODES as usize);
         for (transform, nodes) in query.iter() {
-            for node in &nodes.0 {
-                if let Ok(node_transform) = node_transforms.get(*node) {
+            for entity in &nodes.0 {
+                if let Ok((node_transform, node)) = node_transforms.get(*entity) {
                     let rel_transform = node_transform.reparented_to(transform);
-                    all_nodes.push(rel_transform.translation.xy())
+                    all_nodes.push(SoftBodyNode2d {
+                        position: rel_transform.translation.xy(),
+                        radius: node.radius,
+                    })
                 }
             }
         }
@@ -75,7 +89,9 @@ impl SoftBodyNodesBuffer {
 }
 
 #[derive(Component, Reflect)]
-pub struct SoftBodyNode;
+pub struct SoftBodyNode {
+    pub radius: f32,
+}
 impl SoftBodyNode {
     /// Make the nodes move around.
     pub fn update(mut query: Query<&mut Transform, With<Self>>, time: Res<Time>) {
@@ -99,8 +115,8 @@ impl SoftBodyNodes {
     ) {
         for (mut transform, nodes) in query.iter_mut() {
             let mut sum_pos = Vec2::ZERO;
-            for node in &nodes.0 {
-                if let Ok(node_transform) = node_transforms.get(*node) {
+            for entity in &nodes.0 {
+                if let Ok(node_transform) = node_transforms.get(*entity) {
                     sum_pos += node_transform.translation().xy();
                 }
             }

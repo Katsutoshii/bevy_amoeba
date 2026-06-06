@@ -21,6 +21,7 @@ impl Plugin for SoftBodyVerticesPlugin {
         app.init_resource::<SoftBodyVertex2dBuffer>();
     }
 }
+
 #[derive(Default, ShaderType, Copy, Clone, Debug)]
 pub struct SoftBodyVertex2d {
     pub position: Vec2,
