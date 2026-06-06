@@ -1,7 +1,6 @@
 use bevy::{
     app::Plugin,
     asset::{DirectAssetAccessExt, Handle},
-    color::LinearRgba,
     ecs::{
         resource::Resource,
         world::{FromWorld, World},
@@ -14,30 +13,28 @@ use bevy::{
     shader::load_shader_library,
 };
 
-pub struct Particle2dPlugin;
-impl Plugin for Particle2dPlugin {
+pub struct SoftBodyVerticesPlugin;
+impl Plugin for SoftBodyVerticesPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         load_shader_library!(app, "rand.wgsl");
-        load_shader_library!(app, "particle.wgsl");
-        app.init_resource::<Particle2dBuffer>();
+        load_shader_library!(app, "vertices.wgsl");
+        app.init_resource::<SoftBodyVertex2dBuffer>();
     }
 }
 #[derive(Default, ShaderType, Copy, Clone, Debug)]
-pub struct Particle2d {
+pub struct SoftBodyVertex2d {
     pub position: Vec2,
-    pub velocity: Vec2,
-    pub color: LinearRgba,
 }
 
 #[derive(Resource, ExtractResource, Clone)]
-pub struct Particle2dBuffer(pub Handle<ShaderStorageBuffer>);
-impl Particle2dBuffer {
-    pub const MAX_PARTICLES: u32 = 128;
+pub struct SoftBodyVertex2dBuffer(pub Handle<ShaderStorageBuffer>);
+impl SoftBodyVertex2dBuffer {
+    pub const NUM_VERTICES: u32 = 128;
 }
 
-impl FromWorld for Particle2dBuffer {
+impl FromWorld for SoftBodyVertex2dBuffer {
     fn from_world(world: &mut World) -> Self {
-        let particles = [Particle2d::default(); Self::MAX_PARTICLES as usize];
+        let particles = [SoftBodyVertex2d::default(); Self::NUM_VERTICES as usize];
         Self(world.add_asset(ShaderStorageBuffer::from(particles)))
     }
 }

@@ -18,7 +18,9 @@ use bevy::{
     shader::ShaderRef,
 };
 
-use crate::{ComputeShader, ComputeShaderPlugin, Particle2dBuffer, nodes::SoftBodyNodesBuffer};
+use crate::{
+    ComputeShader, ComputeShaderPlugin, SoftBodyVertex2dBuffer, nodes::SoftBodyNodesBuffer,
+};
 
 pub struct SoftBodyComputePlugin;
 impl Plugin for SoftBodyComputePlugin {
@@ -32,18 +34,18 @@ impl Plugin for SoftBodyComputePlugin {
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, Resource, ExtractResource)]
 pub struct SoftBodyCompute {
     #[storage(0, visibility(compute))]
-    pub particles: Handle<ShaderStorageBuffer>,
+    pub vertices: Handle<ShaderStorageBuffer>,
     #[storage(1, read_only, visibility(compute))]
     pub nodes: Handle<ShaderStorageBuffer>,
 
     #[uniform(2)]
-    num_particles: u32,
+    num_vertices: u32,
 }
 impl FromWorld for SoftBodyCompute {
     fn from_world(world: &mut World) -> Self {
         Self {
-            num_particles: Particle2dBuffer::MAX_PARTICLES,
-            particles: world.resource::<Particle2dBuffer>().0.clone(),
+            num_vertices: SoftBodyVertex2dBuffer::NUM_VERTICES,
+            vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
             nodes: world.resource::<SoftBodyNodesBuffer>().0.clone(),
         }
     }
@@ -61,7 +63,7 @@ impl ComputeShader for SoftBodyCompute {
     }
     fn workgroup_count() -> UVec3 {
         UVec3::new(
-            Particle2dBuffer::MAX_PARTICLES / Self::workgroup_size().x,
+            SoftBodyVertex2dBuffer::NUM_VERTICES / Self::workgroup_size().x,
             1,
             1,
         )

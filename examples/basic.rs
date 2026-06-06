@@ -9,7 +9,7 @@ use bevy::{
     prelude::*,
 };
 
-use bevy_amoeba::{AmoebaPlugin, CircleNGon, Particle2dBuffer, SoftBodyMaterial, SoftBodyNode};
+use bevy_amoeba::{SoftBodyAssets, SoftBodyMaterial, SoftBodyNode, SoftBodyPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -23,16 +23,15 @@ fn main() {
         FpsOverlayPlugin {
             config: FpsOverlayConfig::default(),
         },
-        AmoebaPlugin,
+        SoftBodyPlugin,
     ))
     .add_systems(Startup, setup);
     app.add_systems(
         Update,
-        toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)),
-    );
-    app.add_systems(
-        Update,
-        rotate.run_if(input_toggle_active(false, KeyCode::KeyR)),
+        (
+            toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)),
+            rotate.run_if(input_toggle_active(false, KeyCode::KeyR)),
+        ),
     );
     app.run();
 }
@@ -41,9 +40,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut std_materials: ResMut<Assets<StandardMaterial>>,
-    mut materials: ResMut<Assets<SoftBodyMaterial>>,
-    asset_server: Res<AssetServer>,
-    particles: Res<Particle2dBuffer>,
+    assets: Res<SoftBodyAssets>,
 ) {
     commands.spawn((
         Camera3d::default(),
@@ -100,17 +97,8 @@ fn setup(
     commands
         .spawn((
             Name::new("SoftBodyMesh"),
-            Mesh3d(meshes.add(CircleNGon {
-                n: Particle2dBuffer::MAX_PARTICLES as usize,
-                r: 1.0,
-            })),
-            MeshMaterial3d(materials.add(SoftBodyMaterial {
-                color: Color::WHITE.to_linear(),
-                color_texture: Some(asset_server.load("textures/bubble_7.png")),
-                particles: particles.0.clone(),
-                alpha_mode: AlphaMode::Blend,
-                ..default()
-            })),
+            Mesh3d(assets.mesh.clone()),
+            MeshMaterial3d(assets.material.clone()),
             Transform { ..default() },
         ))
         .add_children(&[node1, node2, node3]);

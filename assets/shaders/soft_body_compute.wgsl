@@ -1,18 +1,17 @@
-#import bevy_amoeba::particle::Particle2d;
+#import bevy_amoeba::vertices::SoftBodyVertex2d;
 
 
 struct ComputeInput {
     @builtin(global_invocation_id) id: vec3<u32>,
 };
 
-@group(0) @binding(0) var<storage, read_write> particles: array<Particle2d>;
+@group(0) @binding(0) var<storage, read_write> vertices: array<SoftBodyVertex2d>;
 @group(0) @binding(1) var<storage, read> nodes: array<vec2<f32>>;
-@group(0) @binding(2) var<uniform> num_particles: u32;
+@group(0) @binding(2) var<uniform> num_vertices: u32;
 
 const TAU: f32 = 6.28318531;
 const PI: f32 =  3.14159274;
 
-const WHITE = vec4<f32>(1.0, 1.0, 1.0, 1.0);
 const RADIUS: f32 = 1.0;
 
 // Compute initial position from the given index.
@@ -82,11 +81,11 @@ fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
 // Mean position of the 5 approximate neighbors of particle i.
 fn mean_position5(i: u32, n: u32) -> vec2<f32> {
     return (
-        particles[i].position
-        + particles[(i + 2) % n].position
-        + particles[(i + 1) % n].position
-        + particles[(i - 1) % n].position
-        + particles[(i - 2) % n].position
+        vertices[i].position
+        + vertices[(i + 2) % n].position
+        + vertices[(i + 1) % n].position
+        + vertices[(i - 1) % n].position
+        + vertices[(i - 2) % n].position
     ) / 5.0;
 }
 
@@ -95,13 +94,12 @@ fn mean_position5(i: u32, n: u32) -> vec2<f32> {
 fn init(in: ComputeInput) {
     let i = in.id.x;
     
-    let position0 = get_position(i, num_particles);
-    particles[i].position = get_closest_intersection(position0);
-    particles[i].color = WHITE;
+    let position0 = get_position(i, num_vertices);
+    vertices[i].position = get_closest_intersection(position0);
 
     for (var s = 0; s < 3; s += 1) {   
         storageBarrier();
-        particles[i].position = mean_position5(i, num_particles);
+        vertices[i].position = mean_position5(i, num_vertices);
     }
 }
 
@@ -110,11 +108,11 @@ fn init(in: ComputeInput) {
 fn update(in: ComputeInput) {
     let i = in.id.x;
 
-    let position0 = get_position(i, num_particles);
-    particles[i].position = get_closest_intersection(position0);
+    let position0 = get_position(i, num_vertices);
+    vertices[i].position = get_closest_intersection(position0);
 
     for (var s = 0; s < 3; s += 1) {   
         storageBarrier();
-        particles[i].position = mean_position5(i, num_particles);
+        vertices[i].position = mean_position5(i, num_vertices);
     }
 }

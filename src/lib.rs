@@ -1,28 +1,31 @@
 use bevy::app::{App, Plugin};
 
+mod assets;
 mod compute;
 mod mesh;
 mod nodes;
-mod particle;
 mod soft_body_compute;
 mod soft_body_material;
+mod vertices;
 
 pub use crate::{
+    assets::SoftBodyAssets,
     compute::{ComputeShader, ComputeShaderPlugin},
     mesh::CircleNGon,
     nodes::{SoftBodyNode, SoftBodyNodesBuffer},
-    particle::{Particle2d, Particle2dBuffer},
     soft_body_material::SoftBodyMaterial,
+    vertices::{SoftBodyVertex2d, SoftBodyVertex2dBuffer},
 };
 
-pub struct AmoebaPlugin;
-impl Plugin for AmoebaPlugin {
+pub struct SoftBodyPlugin;
+impl Plugin for SoftBodyPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            particle::Particle2dPlugin,
-            nodes::NodesPlugin,
+            vertices::SoftBodyVerticesPlugin,
+            nodes::SoftBodyNodesPlugin,
             soft_body_material::SoftBodyMaterial2dPlugin,
             soft_body_compute::SoftBodyComputePlugin,
-        ));
+        ))
+        .init_resource::<assets::SoftBodyAssets>();
     }
 }

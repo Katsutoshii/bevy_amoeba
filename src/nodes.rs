@@ -21,8 +21,8 @@ use bevy::{
 
 use crate::{SoftBodyMaterial, soft_body_compute::SoftBodyCompute};
 
-pub struct NodesPlugin;
-impl Plugin for NodesPlugin {
+pub struct SoftBodyNodesPlugin;
+impl Plugin for SoftBodyNodesPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.init_resource::<SoftBodyNodesBuffer>().add_systems(
             Update,
