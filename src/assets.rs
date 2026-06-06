@@ -24,12 +24,12 @@ impl FromWorld for SoftBodyAssets {
             material: world.add_asset(SoftBodyMaterial {
                 color: Color::WHITE.to_linear(),
                 color_texture: Some(world.load_asset("textures/bubble_7.png")),
-                particles: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
+                vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
                 alpha_mode: AlphaMode::Blend,
                 ..default()
             }),
             mesh: world.add_asset(CircleNGon {
-                n: SoftBodyVertex2dBuffer::NUM_VERTICES as usize,
+                n: (SoftBodyVertex2dBuffer::NUM_VERTICES - 1) as usize,
                 r: 1.0,
             }),
         }

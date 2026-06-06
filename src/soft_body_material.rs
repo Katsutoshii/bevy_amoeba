@@ -44,7 +44,7 @@ pub struct SoftBodyMaterial {
     pub color_texture: Option<Handle<Image>>,
 
     #[storage(4, read_only)]
-    pub particles: Handle<ShaderStorageBuffer>,
+    pub vertices: Handle<ShaderStorageBuffer>,
 
     pub alpha_mode: AlphaMode,
 }

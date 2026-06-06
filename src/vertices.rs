@@ -34,7 +34,8 @@ impl SoftBodyVertex2dBuffer {
 
 impl FromWorld for SoftBodyVertex2dBuffer {
     fn from_world(world: &mut World) -> Self {
-        let particles = [SoftBodyVertex2d::default(); Self::NUM_VERTICES as usize];
-        Self(world.add_asset(ShaderStorageBuffer::from(particles)))
+        Self(world.add_asset(ShaderStorageBuffer::from(
+            [SoftBodyVertex2d::default(); Self::NUM_VERTICES as usize],
+        )))
     }
 }

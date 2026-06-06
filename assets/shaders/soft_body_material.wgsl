@@ -23,18 +23,10 @@ struct VertexOutput {
     @location(1) vertex_index: u32,
 };
 
-fn get_position(vertex_index: u32) -> vec2<f32> {
-    if (vertex_index > 0) {
-        return vertices[vertex_index - 1].position;
-    } else {
-        return vec2<f32>(0.0, 0.0);
-    }
-}
-
 fn get_clip_position(vertex: Vertex) -> vec4<f32> {
     return mesh_position_local_to_clip(
         get_world_from_local(vertex.instance_index),
-        vec4<f32>(get_position(vertex.index), 0.0, 1.0),
+        vec4<f32>(vertices[vertex.index].position, 0.0, 1.0),
     );
 }
 

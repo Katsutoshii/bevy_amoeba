@@ -13,10 +13,11 @@ const TAU: f32 = 6.28318531;
 const PI: f32 =  3.14159274;
 
 const RADIUS: f32 = 1.0;
+const SMOOTH_STEPS: i32 = 2;
 
 // Compute initial position from the given index.
 fn get_position(i: u32, n: u32) -> vec2<f32> {
-    let angle = (f32(i) / f32(n)) * TAU;
+    let angle = (f32(i - 1) / f32(n - 1)) * TAU;
     return vec2<f32>(cos(angle) * RADIUS, sin(angle) * RADIUS);
 }
 
@@ -78,41 +79,49 @@ fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
     return min_q;
 }
 
-// Mean position of the 5 approximate neighbors of particle i.
-fn mean_position5(i: u32, n: u32) -> vec2<f32> {
+// A foolproof wrapping function for WGSL
+fn wrap_index(i: i32, n: i32) -> i32 {
+    if (i < 0) {
+        return n + i;
+    }
+    return i % n;
+}
+
+// Mean position of the 5 neighbors of particle i.
+fn mean_position5(i: u32, n: u32, o: i32) -> vec2<f32> {
+    let j: i32 = i32(i) - o;
+    let m: i32 = i32(n) - 1;
     return (
-        vertices[i].position
-        + vertices[(i + 2) % n].position
-        + vertices[(i + 1) % n].position
-        + vertices[(i - 1) % n].position
-        + vertices[(i - 2) % n].position
+          vertices[wrap_index(j - 2, m) + o].position
+        + vertices[wrap_index(j - 1, m) + o].position
+        + vertices[wrap_index(j + 0, m) + o].position
+        + vertices[wrap_index(j + 1, m) + o].position
+        + vertices[wrap_index(j + 2, m) + o].position
     ) / 5.0;
 }
 
 // Initialize the velocity of each particle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn init(in: ComputeInput) {
-    let i = in.id.x;
+    let i: u32 = in.id.x;
+    let o: i32 = 1;
+    let n = arrayLength(&vertices);
+
+    if (i == 0) {
+        vertices[i].position = vec2<f32>(0.0, 0.0);
+        return;
+    }
     
-    let position0 = get_position(i, num_vertices);
+    let position0 = get_position(i, n);
     vertices[i].position = get_closest_intersection(position0);
 
-    for (var s = 0; s < 3; s += 1) {   
+    for (var s = 0; s < SMOOTH_STEPS; s += 1) {   
         storageBarrier();
-        vertices[i].position = mean_position5(i, num_vertices);
+        vertices[i].position = mean_position5(i, num_vertices, o);
     }
 }
 
 // Update positions of each particle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn update(in: ComputeInput) {
-    let i = in.id.x;
-
-    let position0 = get_position(i, num_vertices);
-    vertices[i].position = get_closest_intersection(position0);
-
-    for (var s = 0; s < 3; s += 1) {   
-        storageBarrier();
-        vertices[i].position = mean_position5(i, num_vertices);
-    }
 }
