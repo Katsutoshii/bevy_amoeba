@@ -12,7 +12,7 @@ pub use crate::{
     assets::SoftBodyAssets,
     compute::{ComputeShader, ComputeShaderPlugin},
     mesh::CircleNGon,
-    nodes::{SoftBodyNode, SoftBodyNodesBuffer},
+    nodes::{SoftBodyNode, SoftBodyNodes, SoftBodyNodesBuffer},
     soft_body_material::SoftBodyMaterial,
     vertices::{SoftBodyVertex2d, SoftBodyVertex2dBuffer},
 };

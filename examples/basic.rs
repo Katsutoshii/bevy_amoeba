@@ -9,7 +9,7 @@ use bevy::{
     prelude::*,
 };
 
-use bevy_amoeba::{SoftBodyAssets, SoftBodyMaterial, SoftBodyNode, SoftBodyPlugin};
+use bevy_amoeba::{SoftBodyAssets, SoftBodyMaterial, SoftBodyNode, SoftBodyNodes, SoftBodyPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -94,14 +94,13 @@ fn setup(
         .id();
 
     // Spawn the mesh over the nodes.
-    commands
-        .spawn((
-            Name::new("SoftBodyMesh"),
-            Mesh3d(assets.mesh.clone()),
-            MeshMaterial3d(assets.material.clone()),
-            Transform { ..default() },
-        ))
-        .add_children(&[node1, node2, node3]);
+    commands.spawn((
+        Name::new("SoftBodyMesh"),
+        Mesh3d(assets.mesh.clone()),
+        MeshMaterial3d(assets.material.clone()),
+        Transform { ..default() },
+        SoftBodyNodes(vec![node1, node2, node3]),
+    ));
 
     let mut text = "Press 'R' to pause/resume rotation".to_string();
     text.push_str("\nPress 'Space' to toggle wireframes");
