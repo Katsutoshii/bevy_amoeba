@@ -83,6 +83,9 @@ impl SoftBodyNode {
 #[component(on_add = SoftBody::on_add, on_remove = SoftBody::on_remove)]
 pub struct SoftBody(pub Vec<Entity>);
 impl SoftBody {
+    pub const MAX_NODES: usize = 1024;
+    pub const MAX_INSTANCES: usize = 256;
+
     /// Initialize soft body on component add.
     fn on_add(mut world: DeferredWorld, context: HookContext) {
         let SoftBodyAssets { mesh, material } = world.resource::<SoftBodyAssets>().clone();
@@ -138,27 +141,31 @@ impl SoftBody {
         query: Query<(&GlobalTransform, &SoftBody)>,
         node_transforms: Query<(&GlobalTransform, &SoftBodyNode)>,
     ) {
-        let mut all_nodes = Vec::with_capacity(4);
-        let mut all_instances = Vec::with_capacity(4);
+        let mut all_nodes = [SoftBodyNode2d::default(); Self::MAX_NODES];
+        let mut all_instances = [SoftBodyInstanceData::default(); Self::MAX_INSTANCES];
+
+        let mut node_i = 0;
+        let mut instance_i = 0;
+
         for (transform, nodes) in query.iter() {
-            let node_offset = all_nodes.len() as u32;
-            let mut node_length: u32 = 0;
+            let node_offset = node_i;
             for entity in &nodes.0 {
                 if let Ok((node_transform, node)) = node_transforms.get(*entity) {
                     let rel_transform = node_transform.reparented_to(transform);
-                    all_nodes.push(SoftBodyNode2d {
+                    all_nodes[node_i] = SoftBodyNode2d {
                         position: rel_transform.translation.xy(),
                         radius: node.radius,
-                    });
-                    node_length += 1;
+                    };
+                    node_i += 1;
                 }
             }
-            all_instances.push(SoftBodyInstanceData {
-                node_offset,
-                node_length,
-            });
+            all_instances[instance_i] = SoftBodyInstanceData {
+                node_offset: node_offset as u32,
+                node_length: (node_i - node_offset) as u32,
+            };
+            instance_i += 1;
         }
-        compute.num_instances = all_instances.len() as u32;
+        compute.num_instances = instance_i as u32;
         if let Some(node_buffer) = buffers.get_mut(&compute.nodes) {
             node_buffer.set_data(all_nodes);
         }
