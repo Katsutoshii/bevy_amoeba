@@ -12,7 +12,7 @@ use bevy::{
         world::{DeferredWorld, FromWorld, World},
     },
     math::{Vec2, Vec3Swizzles},
-    mesh::Mesh3d,
+    mesh::{Mesh3d, MeshTag},
     pbr::MeshMaterial3d,
     reflect::Reflect,
     render::{
@@ -89,12 +89,14 @@ impl SoftBody {
     /// Initialize soft body on component add.
     fn on_add(mut world: DeferredWorld, context: HookContext) {
         let SoftBodyAssets { mesh, material } = world.resource::<SoftBodyAssets>().clone();
-        world
-            .commands()
-            .entity(context.entity)
-            .insert((Mesh3d(mesh), MeshMaterial3d(material)));
-
         let num_instances = world.resource_mut::<SoftBodyCompute>().add_instance();
+
+        world.commands().entity(context.entity).insert((
+            Mesh3d(mesh),
+            MeshMaterial3d(material),
+            MeshTag(num_instances - 1),
+        ));
+
         let buffer_handle = world.resource_mut::<SoftBodyVertex2dBuffer>().0.clone();
         if let Some(buffer) = world
             .resource_mut::<Assets<ShaderStorageBuffer>>()
@@ -167,10 +169,10 @@ impl SoftBody {
         }
         compute.num_instances = instance_i as u32;
         if let Some(node_buffer) = buffers.get_mut(&compute.nodes) {
-            node_buffer.set_data(all_nodes);
+            node_buffer.set_data(&all_nodes[0..node_i]);
         }
         if let Some(instance_buffer) = buffers.get_mut(&compute.instances) {
-            instance_buffer.set_data(all_instances);
+            instance_buffer.set_data(&all_instances[0..instance_i]);
         }
     }
 }

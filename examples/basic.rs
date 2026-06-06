@@ -6,12 +6,11 @@ use bevy::{
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
     ecs::{lifecycle::HookContext, world::DeferredWorld},
     input::common_conditions::{input_just_pressed, input_toggle_active},
-    mesh::MeshTag,
     pbr::wireframe::{WireframeConfig, WireframePlugin},
     prelude::*,
 };
 
-use bevy_amoeba::{SoftBody, SoftBodyAssets, SoftBodyMaterial, SoftBodyNode, SoftBodyPlugin};
+use bevy_amoeba::{SoftBody, SoftBodyMaterial, SoftBodyNode, SoftBodyPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
@@ -28,6 +27,7 @@ fn main() {
             SoftBodyPlugin,
         ))
         .init_resource::<CustomSoftBodyNodeAssets>()
+        .insert_resource(ClearColor(Color::WHITE))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -49,7 +49,7 @@ fn main() {
         ..default()
     }),
     Transform {
-        translation: Vec3::new(0.0, 0.0, 2.0),
+        translation: Vec3::new(0.0, 0.0, 8.0),
         ..default()
     })]
 struct MainCamera;
@@ -64,7 +64,7 @@ impl FromWorld for CustomSoftBodyNodeAssets {
         Self {
             mesh: world.add_asset(Circle { radius: 0.1 }),
             material: world.add_asset(StandardMaterial {
-                base_color: Color::WHITE.into(),
+                base_color: Color::BLACK.into(),
                 unlit: true,
                 alpha_mode: AlphaMode::Blend,
                 ..default()
@@ -92,106 +92,69 @@ impl CustomSoftBodyNode {
     }
 }
 
-fn setup(mut commands: Commands, assets: Res<SoftBodyAssets>) {
+#[derive(Component, Reflect, Copy, Clone)]
+#[component(on_add = CustomSoftBody::on_add)]
+#[require(Name::new("SoftBody"))]
+struct CustomSoftBody {
+    pub offset: Vec3,
+}
+impl CustomSoftBody {
+    fn on_add(mut world: DeferredWorld, context: HookContext) {
+        let Self { offset } = world.entity(context.entity).get::<Self>().unwrap().clone();
+        let entities = [
+            (
+                CustomSoftBodyNode { radius: 0.6 },
+                Transform {
+                    translation: Vec3::new(0.1, -0.1, 0.0) + offset,
+                    ..default()
+                },
+            ),
+            (
+                CustomSoftBodyNode { radius: 0.5 },
+                Transform {
+                    translation: Vec3::new(0.3, 0.3, 0.0) + offset,
+                    ..default()
+                },
+            ),
+            (
+                CustomSoftBodyNode { radius: 0.4 },
+                Transform {
+                    translation: Vec3::new(-0.2, -0.2, 0.0) + offset,
+                    ..default()
+                },
+            ),
+        ]
+        .into_iter()
+        .map(|bundle| world.commands().spawn(bundle).id())
+        .collect();
+        world
+            .commands()
+            .entity(context.entity)
+            .insert(SoftBody(entities));
+    }
+}
+
+fn setup(mut commands: Commands) {
     commands.spawn(MainCamera);
     commands.spawn(DirectionalLight::default());
 
     let z = -0.1;
-    let x_offset = 1.6;
+    let x_step = 1.6;
+    let y_step = 1.6;
+    let x_total = 8;
+    let y_total = 8;
 
-    let node1 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.6 },
-            Transform::from_xyz(0.1 - x_offset, -0.1, z),
-        ))
-        .id();
-    let node2 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.5 },
-            Transform::from_xyz(0.3 - x_offset, 0.3, z),
-        ))
-        .id();
-    let node3 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.4 },
-            Transform::from_xyz(-0.2 - x_offset, -0.2, z),
-        ))
-        .id();
-    commands.spawn((
-        Name::new("SoftBodyMesh1"),
-        Mesh3d(assets.mesh.clone()),
-        MeshMaterial3d(assets.material.clone()),
-        Transform { ..default() },
-        SoftBody(vec![node1, node2, node3]),
-        MeshTag(0),
-    ));
-
-    let node4 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.6 },
-            Transform::from_xyz(0.1, -0.1, z),
-        ))
-        .id();
-    let node5 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.5 },
-            Transform::from_xyz(0.3, 0.3, z),
-        ))
-        .id();
-    let node6 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.4 },
-            Transform::from_xyz(-0.2, -0.2, z),
-        ))
-        .id();
-    commands.spawn((
-        Name::new("SoftBodyMesh2"),
-        Mesh3d(assets.mesh.clone()),
-        MeshMaterial3d(assets.material.clone()),
-        Transform { ..default() },
-        SoftBody(vec![node4, node5, node6]),
-        MeshTag(1),
-    ));
-
-    let node7 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.6 },
-            Transform::from_xyz(0.1 + x_offset, -0.1, z),
-        ))
-        .id();
-    let node8 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.5 },
-            Transform::from_xyz(0.3 + x_offset, 0.3, z),
-        ))
-        .id();
-    let node9 = commands
-        .spawn((
-            CustomSoftBodyNode { radius: 0.4 },
-            Transform::from_xyz(-0.2 + x_offset, -0.2, z),
-        ))
-        .id();
-    commands.spawn((
-        Name::new("SoftBodyMesh3"),
-        Mesh3d(assets.mesh.clone()),
-        MeshMaterial3d(assets.material.clone()),
-        Transform { ..default() },
-        SoftBody(vec![node7, node8, node9]),
-        MeshTag(2),
-    ));
-
-    let mut text = "Press 'R' to pause/resume rotation".to_string();
-    text.push_str("\nPress 'Space' to toggle wireframes");
-
-    commands.spawn((
-        Text::new(text),
-        Node {
-            position_type: PositionType::Absolute,
-            top: px(12),
-            left: px(12),
-            ..default()
-        },
-    ));
+    for y in 0..y_total {
+        for x in 0..x_total {
+            commands.spawn(CustomSoftBody {
+                offset: Vec3::new(
+                    (x - x_total / 2) as f32 * x_step,
+                    (y - y_total / 2) as f32 * y_step,
+                    z,
+                ),
+            });
+        }
+    }
 }
 
 fn toggle_wireframe(mut wireframe_config: ResMut<WireframeConfig>) {

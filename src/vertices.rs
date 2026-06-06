@@ -30,7 +30,7 @@ pub struct SoftBodyVertex2d {
 #[derive(Resource, ExtractResource, Clone)]
 pub struct SoftBodyVertex2dBuffer(pub Handle<ShaderStorageBuffer>);
 impl SoftBodyVertex2dBuffer {
-    pub const NUM_VERTICES_PER_INSTANCE: u32 = 128;
+    pub const NUM_VERTICES_PER_INSTANCE: u32 = 64;
 }
 impl SoftBodyVertex2dBuffer {
     /// Resizes the vertex buffer to support the given number of instances.
