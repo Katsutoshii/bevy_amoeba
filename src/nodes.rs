@@ -12,7 +12,6 @@ use bevy::{
         world::{FromWorld, World},
     },
     math::{Vec2, Vec3Swizzles},
-    pbr::MeshMaterial3d,
     reflect::Reflect,
     render::{
         extract_resource::ExtractResource, render_resource::ShaderType,
@@ -26,7 +25,7 @@ use bevy::{
     },
 };
 
-use crate::{SoftBodyMaterial, soft_body_compute::SoftBodyCompute};
+use crate::{instances::SoftBodyInstanceData, soft_body_compute::SoftBodyCompute};
 
 pub struct SoftBodyNodesPlugin;
 impl Plugin for SoftBodyNodesPlugin {
@@ -35,9 +34,9 @@ impl Plugin for SoftBodyNodesPlugin {
         app.init_resource::<SoftBodyNode2dBuffer>().add_systems(
             Update,
             (
-                SoftBodyNodes::update.after(TransformSystems::Propagate),
+                SoftBody::update.after(TransformSystems::Propagate),
                 SoftBodyNode::update,
-                SoftBodyNode2dBuffer::update,
+                SoftBody::update_buffers,
             )
                 .chain(),
         );
@@ -54,37 +53,7 @@ pub struct SoftBodyNode2d {
 pub struct SoftBodyNode2dBuffer(pub Handle<ShaderStorageBuffer>);
 impl FromWorld for SoftBodyNode2dBuffer {
     fn from_world(world: &mut World) -> Self {
-        Self(world.add_asset(ShaderStorageBuffer::from(vec![
-            SoftBodyNode2d::default();
-            Self::MAX_NODES as usize
-        ])))
-    }
-}
-impl SoftBodyNode2dBuffer {
-    pub const MAX_NODES: u32 = 16;
-
-    /// Copy relative positions into the nodes buffer.
-    pub fn update(
-        mut compute: ResMut<SoftBodyCompute>,
-        mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-        query: Query<(&GlobalTransform, &SoftBodyNodes), With<MeshMaterial3d<SoftBodyMaterial>>>,
-        node_transforms: Query<(&GlobalTransform, &SoftBodyNode)>,
-    ) {
-        let buffer = buffers.get_mut(&compute.nodes).unwrap();
-        let mut all_nodes = Vec::with_capacity(Self::MAX_NODES as usize);
-        for (transform, nodes) in query.iter() {
-            for entity in &nodes.0 {
-                if let Ok((node_transform, node)) = node_transforms.get(*entity) {
-                    let rel_transform = node_transform.reparented_to(transform);
-                    all_nodes.push(SoftBodyNode2d {
-                        position: rel_transform.translation.xy(),
-                        radius: node.radius,
-                    })
-                }
-            }
-        }
-        compute.set_changed();
-        buffer.set_data(all_nodes);
+        Self(world.add_asset(ShaderStorageBuffer::from(Vec::<SoftBodyNode2d>::new())))
     }
 }
 
@@ -106,8 +75,8 @@ impl SoftBodyNode {
 }
 
 #[derive(Component, Reflect)]
-pub struct SoftBodyNodes(pub Vec<Entity>);
-impl SoftBodyNodes {
+pub struct SoftBody(pub Vec<Entity>);
+impl SoftBody {
     /// Update to the center of mass of all nodes.
     pub fn update(
         mut query: Query<(&mut Transform, &Self)>,
@@ -124,5 +93,45 @@ impl SoftBodyNodes {
             transform.translation.x = centroid.x;
             transform.translation.y = centroid.y;
         }
+    }
+
+    /// Copy relative positions into the nodes buffer.
+    pub fn update_buffers(
+        mut compute: ResMut<SoftBodyCompute>,
+        mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+        query: Query<(&GlobalTransform, &SoftBody)>,
+        node_transforms: Query<(&GlobalTransform, &SoftBodyNode)>,
+    ) {
+        let mut all_nodes = Vec::with_capacity(4);
+        let mut all_instances = Vec::with_capacity(4);
+        for (transform, nodes) in query.iter() {
+            let node_offset = all_nodes.len() as u32;
+            let mut node_length: u32 = 0;
+            for entity in &nodes.0 {
+                if let Ok((node_transform, node)) = node_transforms.get(*entity) {
+                    let rel_transform = node_transform.reparented_to(transform);
+                    all_nodes.push(SoftBodyNode2d {
+                        position: rel_transform.translation.xy(),
+                        radius: node.radius,
+                    });
+                    node_length += 1;
+                }
+            }
+            // dbg!(SoftBodyInstanceData {
+            //     node_offset,
+            //     node_length,
+            // });
+            all_instances.push(SoftBodyInstanceData {
+                node_offset,
+                node_length,
+            });
+        }
+        if let Some(node_buffer) = buffers.get_mut(&compute.nodes) {
+            node_buffer.set_data(all_nodes);
+        }
+        if let Some(instance_buffer) = buffers.get_mut(&compute.instances) {
+            instance_buffer.set_data(all_instances);
+        }
+        compute.set_changed();
     }
 }

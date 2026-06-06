@@ -19,7 +19,8 @@ use bevy::{
 };
 
 use crate::{
-    ComputeShader, ComputeShaderPlugin, SoftBodyVertex2dBuffer, nodes::SoftBodyNode2dBuffer,
+    ComputeShader, ComputeShaderPlugin, SoftBodyVertex2dBuffer, instances::SoftBodyInstanceBuffer,
+    nodes::SoftBodyNode2dBuffer,
 };
 
 pub struct SoftBodyComputePlugin;
@@ -37,15 +38,18 @@ pub struct SoftBodyCompute {
     pub vertices: Handle<ShaderStorageBuffer>,
     #[storage(1, read_only, visibility(compute))]
     pub nodes: Handle<ShaderStorageBuffer>,
+    #[storage(2, read_only, visibility(compute))]
+    pub instances: Handle<ShaderStorageBuffer>,
 
-    #[uniform(2)]
-    num_vertices: u32,
+    #[uniform(3)]
+    num_vertices_per_instance: u32,
 }
 impl FromWorld for SoftBodyCompute {
     fn from_world(world: &mut World) -> Self {
         Self {
-            num_vertices: SoftBodyVertex2dBuffer::NUM_VERTICES,
+            num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
             vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
+            instances: world.resource::<SoftBodyInstanceBuffer>().0.clone(),
             nodes: world.resource::<SoftBodyNode2dBuffer>().0.clone(),
         }
     }
@@ -64,7 +68,7 @@ impl ComputeShader for SoftBodyCompute {
     fn workgroup_count() -> UVec3 {
         UVec3::new(
             SoftBodyVertex2dBuffer::NUM_VERTICES / Self::workgroup_size().x,
-            1,
+            SoftBodyInstanceBuffer::NUM_INSTANCES,
             1,
         )
     }

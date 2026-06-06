@@ -1,5 +1,6 @@
 #import bevy_amoeba::vertices::SoftBodyVertex2d;
 #import bevy_amoeba::nodes::SoftBodyNode2d;
+#import bevy_amoeba::instances::SoftBodyInstanceData;
 
 
 struct ComputeInput {
@@ -8,11 +9,13 @@ struct ComputeInput {
 
 @group(0) @binding(0) var<storage, read_write> vertices: array<SoftBodyVertex2d>;
 @group(0) @binding(1) var<storage, read> nodes: array<SoftBodyNode2d>;
-@group(0) @binding(2) var<uniform> num_vertices: u32;
+@group(0) @binding(2) var<storage, read> instances: array<SoftBodyInstanceData>;
+@group(0) @binding(3) var<uniform> num_vertices_per_instance: u32;
 
 const TAU: f32 = 6.28318531;
 const PI: f32 =  3.14159274;
 
+const ORIGIN = vec2<f32>(0.0, 0.0);
 const RADIUS: f32 = 1.0;
 const SMOOTH_STEPS: i32 = 2;
 
@@ -64,14 +67,15 @@ fn get_closest_circle_line_intersection(
 }
 
 // Find the closest intersection from point p to the origin and the nodes.
-fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
-    const o = vec2<f32>(0.0, 0.0);
+fn get_closest_intersection(p: vec2<f32>, ii: u32) -> vec2<f32> {
     var min_d2 = 1000000.0;
     var min_q = p;
-    for (var i: u32 = 0; i < arrayLength(&nodes); i += 1) {
+    let o = instances[ii].node_offset;
+    let n = instances[ii].node_length;
+    for (var i: u32 = o; i < o + n; i += 1) {
         let c = nodes[i].position.xy;
         let r = nodes[i].radius;
-        let q = get_closest_circle_line_intersection(c, r, p, o);
+        let q = get_closest_circle_line_intersection(c, r, p, ORIGIN);
         let d2 = l2_squared(p - q);
         if (d2 < min_d2) {
             min_d2 = d2;
@@ -81,7 +85,6 @@ fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
     return min_q;
 }
 
-// A foolproof wrapping function for WGSL
 fn wrap_index(i: i32, n: i32) -> i32 {
     if (i < 0) {
         return n + i;
@@ -90,8 +93,8 @@ fn wrap_index(i: i32, n: i32) -> i32 {
 }
 
 // Mean position of the 5 neighbors of particle i.
-fn mean_position5(i: u32, n: u32, o: i32) -> vec2<f32> {
-    let j: i32 = i32(i) - o;
+fn mean_position5(vi: u32, n: u32, o: i32) -> vec2<f32> {
+    let j: i32 = i32(vi) - o;
     let m: i32 = i32(n) - 1;
     return (
           vertices[wrap_index(j - 2, m) + o].position
@@ -105,21 +108,23 @@ fn mean_position5(i: u32, n: u32, o: i32) -> vec2<f32> {
 // Initialize the velocity of each particle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn init(in: ComputeInput) {
+    let n: u32 = num_vertices_per_instance;
     let i: u32 = in.id.x;
-    let o: i32 = 1;
-    let n = arrayLength(&vertices);
+    let ii: u32 = in.id.y;
+    let vi: u32 = ii * n + i;
+    let o: i32 = i32(ii * n + 1); // 128 is a center, so it should shift by 129
 
     if (i == 0) {
-        vertices[i].position = vec2<f32>(0.0, 0.0);
+        vertices[vi].position = vec2<f32>(0.0, 0.0);
         return;
     }
     
-    let position0 = get_position(i, n);
-    vertices[i].position = get_closest_intersection(position0);
+    let position0 = get_position(vi, n);
+    vertices[vi].position = get_closest_intersection(position0, ii);
 
     for (var s = 0; s < SMOOTH_STEPS; s += 1) {   
         storageBarrier();
-        vertices[i].position = mean_position5(i, num_vertices, o);
+        vertices[vi].position = mean_position5(vi, n, o);
     }
 }
 

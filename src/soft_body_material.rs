@@ -37,7 +37,7 @@ pub struct SoftBodyMaterial {
     pub color: LinearRgba,
 
     #[uniform(1)]
-    pub vertices_per_particle: u32,
+    pub num_vertices_per_instance: u32,
 
     #[texture(2)]
     #[sampler(3)]

@@ -13,6 +13,8 @@ use bevy::{
     shader::load_shader_library,
 };
 
+use crate::instances::SoftBodyInstanceBuffer;
+
 pub struct SoftBodyVerticesPlugin;
 impl Plugin for SoftBodyVerticesPlugin {
     fn build(&self, app: &mut bevy::app::App) {
@@ -36,7 +38,8 @@ impl SoftBodyVertex2dBuffer {
 impl FromWorld for SoftBodyVertex2dBuffer {
     fn from_world(world: &mut World) -> Self {
         Self(world.add_asset(ShaderStorageBuffer::from(
-            [SoftBodyVertex2d::default(); Self::NUM_VERTICES as usize],
+            [SoftBodyVertex2d::default();
+                (Self::NUM_VERTICES * SoftBodyInstanceBuffer::NUM_INSTANCES) as usize],
         )))
     }
 }

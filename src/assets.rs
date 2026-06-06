@@ -24,6 +24,7 @@ impl FromWorld for SoftBodyAssets {
             material: world.add_asset(SoftBodyMaterial {
                 color: Color::WHITE.to_linear(),
                 color_texture: Some(world.load_asset("textures/bubble_7.png")),
+                num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
                 vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
                 alpha_mode: AlphaMode::Blend,
                 ..default()
