@@ -38,13 +38,10 @@ pub struct SoftBodyCompute {
 
     #[uniform(2)]
     num_particles: u32,
-    #[uniform(3)]
-    dt: f32,
 }
 impl FromWorld for SoftBodyCompute {
     fn from_world(world: &mut World) -> Self {
         Self {
-            dt: 0.005,
             num_particles: Particle2dBuffer::MAX_PARTICLES,
             particles: world.resource::<Particle2dBuffer>().0.clone(),
             nodes: world.resource::<SoftBodyNodesBuffer>().0.clone(),

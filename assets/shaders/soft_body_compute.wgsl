@@ -8,20 +8,20 @@ struct ComputeInput {
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle2d>;
 @group(0) @binding(1) var<storage, read> nodes: array<vec2<f32>>;
 @group(0) @binding(2) var<uniform> num_particles: u32;
-@group(0) @binding(3) var<uniform> dt: f32;
 
 const TAU: f32 = 6.28318531;
 const PI: f32 =  3.14159274;
 
-const white = vec4<f32>(1.0, 1.0, 1.0, 1.0);
-const radius: f32 = 1.0;
+const WHITE = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+const RADIUS: f32 = 1.0;
 
 // Compute initial position from the given index.
-fn get_position(i: u32) -> vec2<f32> {
-    let angle = (f32(i) / f32(num_particles)) * TAU;
-    return vec2<f32>(cos(angle) * radius, sin(angle) * radius);
+fn get_position(i: u32, n: u32) -> vec2<f32> {
+    let angle = (f32(i) / f32(n)) * TAU;
+    return vec2<f32>(cos(angle) * RADIUS, sin(angle) * RADIUS);
 }
 
+// Compute L2 distance squared.
 fn l2_squared(p: vec2<f32>) -> f32 {
     return p.x * p.x + p.y * p.y;
 }
@@ -62,6 +62,7 @@ fn get_closest_circle_line_intersection(
     }
 }
 
+// Find the closest intersection from point p to the origin and the nodes.
 fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
     const o = vec2<f32>(0.0, 0.0);
     var min_d2 = 1000000.0;
@@ -78,24 +79,29 @@ fn get_closest_intersection(p: vec2<f32>) -> vec2<f32> {
     return min_q;
 }
 
+// Mean position of the 5 approximate neighbors of particle i.
+fn mean_position5(i: u32, n: u32) -> vec2<f32> {
+    return (
+        particles[i].position
+        + particles[(i + 2) % n].position
+        + particles[(i + 1) % n].position
+        + particles[(i - 1) % n].position
+        + particles[(i - 2) % n].position
+    ) / 5.0;
+}
+
 // Initialize the velocity of each particle.
 @compute @workgroup_size(#{WORKGROUP_SIZE_X})
 fn init(in: ComputeInput) {
     let i = in.id.x;
     
-    let position0 = get_position(i);
+    let position0 = get_position(i, num_particles);
     particles[i].position = get_closest_intersection(position0);
-    particles[i].color = white;
+    particles[i].color = WHITE;
 
     for (var s = 0; s < 3; s += 1) {   
         storageBarrier();
-        particles[i].position = (
-                particles[i].position
-                + particles[(i + 2) % num_particles].position
-                + particles[(i + 1) % num_particles].position
-                + particles[(i - 1) % num_particles].position
-                + particles[(i - 2) % num_particles].position
-            ) / 5.0;
+        particles[i].position = mean_position5(i, num_particles);
     }
 }
 
@@ -104,17 +110,11 @@ fn init(in: ComputeInput) {
 fn update(in: ComputeInput) {
     let i = in.id.x;
 
-    let position0 = get_position(i);
+    let position0 = get_position(i, num_particles);
     particles[i].position = get_closest_intersection(position0);
 
     for (var s = 0; s < 3; s += 1) {   
         storageBarrier();
-        particles[i].position = (
-                particles[i].position
-                + particles[(i + 2) % num_particles].position
-                + particles[(i + 1) % num_particles].position
-                + particles[(i - 1) % num_particles].position
-                + particles[(i - 2) % num_particles].position
-            ) / 5.0;
+        particles[i].position = mean_position5(i, num_particles);
     }
 }
