@@ -4,6 +4,7 @@ use std::f32::consts::PI;
 
 use bevy::{
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
+    ecs::{lifecycle::HookContext, world::DeferredWorld},
     input::common_conditions::{input_just_pressed, input_toggle_active},
     mesh::MeshTag,
     pbr::wireframe::{WireframeConfig, WireframePlugin},
@@ -15,84 +16,104 @@ use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
-    let mut app = App::new();
-    app.add_plugins((
-        DefaultPlugins,
-        WireframePlugin::default(),
-        EguiPlugin::default(),
-        WorldInspectorPlugin::new(),
-        FpsOverlayPlugin {
-            config: FpsOverlayConfig::default(),
-        },
-        SoftBodyPlugin,
-    ))
-    .add_systems(Startup, setup);
-    app.add_systems(
-        Update,
-        (
-            toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)),
-            rotate.run_if(input_toggle_active(false, KeyCode::KeyR)),
-        ),
-    );
-    app.run();
+    App::new()
+        .add_plugins((
+            DefaultPlugins,
+            WireframePlugin::default(),
+            EguiPlugin::default(),
+            WorldInspectorPlugin::new(),
+            FpsOverlayPlugin {
+                config: FpsOverlayConfig::default(),
+            },
+            SoftBodyPlugin,
+        ))
+        .init_resource::<CustomSoftBodyNodeAssets>()
+        .add_systems(Startup, setup)
+        .add_systems(
+            Update,
+            (
+                toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)),
+                rotate.run_if(input_toggle_active(false, KeyCode::KeyR)),
+            ),
+        )
+        .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut std_materials: ResMut<Assets<StandardMaterial>>,
-    assets: Res<SoftBodyAssets>,
-) {
-    commands.spawn((
-        Camera3d::default(),
-        Projection::Perspective(PerspectiveProjection {
-            fov: PI / 2.0,
-            near: 0.1,
-            far: 2000.,
-            ..default()
-        }),
-        Transform {
-            translation: Vec3::new(0.0, 0.0, 2.0),
-            ..default()
-        },
-    ));
+#[derive(Component, Reflect)]
+#[require(
+    Camera3d::default(),
+    Projection::Perspective(PerspectiveProjection {
+        fov: PI / 2.0,
+        near: 0.1,
+        far: 2000.,
+        ..default()
+    }),
+    Transform {
+        translation: Vec3::new(0.0, 0.0, 2.0),
+        ..default()
+    })]
+struct MainCamera;
+
+#[derive(Resource, Reflect, Clone)]
+struct CustomSoftBodyNodeAssets {
+    mesh: Handle<Mesh>,
+    material: Handle<StandardMaterial>,
+}
+impl FromWorld for CustomSoftBodyNodeAssets {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            mesh: world.add_asset(Circle { radius: 0.1 }),
+            material: world.add_asset(StandardMaterial {
+                base_color: Color::WHITE.into(),
+                unlit: true,
+                alpha_mode: AlphaMode::Blend,
+                ..default()
+            }),
+        }
+    }
+}
+
+#[derive(Component, Reflect)]
+#[component(on_add = CustomSoftBodyNode::on_add)]
+struct CustomSoftBodyNode {
+    radius: f32,
+}
+impl CustomSoftBodyNode {
+    fn on_add(mut world: DeferredWorld, context: HookContext) {
+        let assets = world.resource::<CustomSoftBodyNodeAssets>().clone();
+        let radius = world.entity(context.entity).get::<Self>().unwrap().radius;
+        world.commands().entity(context.entity).insert((
+            Name::new("SoftBodyNode"),
+            Mesh3d(assets.mesh.clone()),
+            MeshMaterial3d(assets.material.clone()),
+            SoftBodyNode { radius },
+        ));
+    }
+}
+
+fn setup(mut commands: Commands, assets: Res<SoftBodyAssets>) {
+    commands.spawn(MainCamera);
     commands.spawn(DirectionalLight::default());
 
-    let circle = meshes.add(Circle { radius: 0.1 });
-    let white_material = std_materials.add(StandardMaterial {
-        base_color: Color::WHITE.into(),
-        unlit: true,
-        alpha_mode: AlphaMode::Blend,
-        ..default()
-    });
     let z = -0.1;
     let x_offset = 1.6;
 
     let node1 = commands
         .spawn((
-            Name::new("Node1"),
-            SoftBodyNode { radius: 0.6 },
+            CustomSoftBodyNode { radius: 0.6 },
             Transform::from_xyz(0.1 - x_offset, -0.1, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     let node2 = commands
         .spawn((
-            Name::new("Node2"),
-            SoftBodyNode { radius: 0.5 },
+            CustomSoftBodyNode { radius: 0.5 },
             Transform::from_xyz(0.3 - x_offset, 0.3, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     let node3 = commands
         .spawn((
-            Name::new("Node3"),
-            SoftBodyNode { radius: 0.4 },
+            CustomSoftBodyNode { radius: 0.4 },
             Transform::from_xyz(-0.2 - x_offset, -0.2, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     commands.spawn((
@@ -106,29 +127,20 @@ fn setup(
 
     let node4 = commands
         .spawn((
-            Name::new("Node4"),
-            SoftBodyNode { radius: 0.6 },
+            CustomSoftBodyNode { radius: 0.6 },
             Transform::from_xyz(0.1, -0.1, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     let node5 = commands
         .spawn((
-            Name::new("Node5"),
-            SoftBodyNode { radius: 0.5 },
+            CustomSoftBodyNode { radius: 0.5 },
             Transform::from_xyz(0.3, 0.3, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     let node6 = commands
         .spawn((
-            Name::new("Node6"),
-            SoftBodyNode { radius: 0.4 },
+            CustomSoftBodyNode { radius: 0.4 },
             Transform::from_xyz(-0.2, -0.2, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     commands.spawn((
@@ -142,29 +154,20 @@ fn setup(
 
     let node7 = commands
         .spawn((
-            Name::new("Node7"),
-            SoftBodyNode { radius: 0.6 },
+            CustomSoftBodyNode { radius: 0.6 },
             Transform::from_xyz(0.1 + x_offset, -0.1, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     let node8 = commands
         .spawn((
-            Name::new("Node8"),
-            SoftBodyNode { radius: 0.5 },
+            CustomSoftBodyNode { radius: 0.5 },
             Transform::from_xyz(0.3 + x_offset, 0.3, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     let node9 = commands
         .spawn((
-            Name::new("Node9"),
-            SoftBodyNode { radius: 0.4 },
+            CustomSoftBodyNode { radius: 0.4 },
             Transform::from_xyz(-0.2 + x_offset, -0.2, z),
-            Mesh3d(circle.clone()),
-            MeshMaterial3d(white_material.clone()),
         ))
         .id();
     commands.spawn((
