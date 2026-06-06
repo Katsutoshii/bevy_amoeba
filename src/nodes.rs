@@ -2,7 +2,6 @@ use bevy::{
     app::{Plugin, Update},
     asset::{Assets, DirectAssetAccessExt, Handle},
     ecs::{
-        change_detection::DetectChangesMut,
         component::Component,
         entity::Entity,
         query::With,
@@ -117,21 +116,17 @@ impl SoftBody {
                     node_length += 1;
                 }
             }
-            // dbg!(SoftBodyInstanceData {
-            //     node_offset,
-            //     node_length,
-            // });
             all_instances.push(SoftBodyInstanceData {
                 node_offset,
                 node_length,
             });
         }
+        compute.num_instances = all_instances.len() as u32;
         if let Some(node_buffer) = buffers.get_mut(&compute.nodes) {
             node_buffer.set_data(all_nodes);
         }
         if let Some(instance_buffer) = buffers.get_mut(&compute.instances) {
             instance_buffer.set_data(all_instances);
         }
-        compute.set_changed();
     }
 }

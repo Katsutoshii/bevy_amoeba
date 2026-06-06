@@ -107,12 +107,12 @@ impl<S: ComputeShader> Plugin for ComputeShaderPlugin<S> {
 pub trait ComputeShader: AsBindGroup + Clone + Debug + FromWorld + ExtractResource {
     /// Asset path or handle to the shader.
     fn compute_shader() -> ShaderRef;
-    /// Workgroup size.
+    /// Workgroup size. Must be the same across all instances.
     fn workgroup_size() -> UVec3;
     /// Workgroup count.
-    fn workgroup_count() -> UVec3;
+    fn workgroup_count(&self) -> UVec3;
     /// Alpha mode.
-    fn alpha_mode() -> AlphaMode {
+    fn alpha_mode(&self) -> AlphaMode {
         AlphaMode::Blend
     }
     /// Optional bind group preparation.
@@ -252,14 +252,14 @@ pub struct ComputePipeline<S: ComputeShader> {
 impl<S: ComputeShader> FromWorld for ComputePipeline<S> {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
-        let shader = match S::compute_shader() {
+        let shader_ref = match S::compute_shader() {
             ShaderRef::Default => panic!("Must define compute_shader."),
             ShaderRef::Handle(handle) => handle,
             ShaderRef::Path(path) => world.load_asset(path),
         };
         Self {
             resources: ComputePipelineResources::new(
-                shader,
+                shader_ref,
                 S::workgroup_size(),
                 S::bind_group_layout_descriptor(render_device),
                 world.resource::<PipelineCache>(),
@@ -371,6 +371,7 @@ impl<S: ComputeShader> render_graph::Node for ComputeNode<S> {
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), render_graph::NodeRunError> {
+        let shader = world.resource::<S>();
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline = world.resource::<ComputePipeline<S>>();
         let bind_group = &world.resource::<ComputeShaderBindGroup<S>>().bind_group;
@@ -379,7 +380,7 @@ impl<S: ComputeShader> render_graph::Node for ComputeNode<S> {
                 if let Some(init_pipeline) =
                     pipeline_cache.get_compute_pipeline(pipeline.resources.init_pipeline)
                 {
-                    let workgroup_count = S::workgroup_count();
+                    let workgroup_count = shader.workgroup_count();
                     let mut pass = render_context.command_encoder().begin_compute_pass(
                         &ComputePassDescriptor {
                             label: Some("ComputeInit"),
@@ -399,7 +400,7 @@ impl<S: ComputeShader> render_graph::Node for ComputeNode<S> {
                 if let Some(update_pipeline) =
                     pipeline_cache.get_compute_pipeline(pipeline.resources.update_pipeline)
                 {
-                    let workgroup_count = S::workgroup_count();
+                    let workgroup_count = shader.workgroup_count();
                     let mut pass = render_context.command_encoder().begin_compute_pass(
                         &ComputePassDescriptor {
                             label: Some("ComputeUpdate"),

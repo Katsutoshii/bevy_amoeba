@@ -53,6 +53,9 @@ pub struct SoftBodyCompute {
     pub nodes: Handle<ShaderStorageBuffer>,
     #[storage(3, read_only, visibility(compute))]
     pub instances: Handle<ShaderStorageBuffer>,
+
+    // Track number of instances for dispatching workgroups.
+    pub num_instances: u32,
 }
 impl FromWorld for SoftBodyCompute {
     fn from_world(world: &mut World) -> Self {
@@ -61,6 +64,7 @@ impl FromWorld for SoftBodyCompute {
             vertices: world.resource::<SoftBodyVertex2dBuffer>().0.clone(),
             instances: world.resource::<SoftBodyInstanceBuffer>().0.clone(),
             nodes: world.resource::<SoftBodyNode2dBuffer>().0.clone(),
+            num_instances: 0,
         }
     }
 }
@@ -75,11 +79,7 @@ impl ComputeShader for SoftBodyCompute {
     fn workgroup_size() -> UVec3 {
         UVec3::new(128, 1, 1)
     }
-    fn workgroup_count() -> UVec3 {
-        UVec3::new(
-            SoftBodyVertex2dBuffer::NUM_VERTICES / Self::workgroup_size().x,
-            SoftBodyInstanceBuffer::NUM_INSTANCES,
-            1,
-        )
+    fn workgroup_count(&self) -> UVec3 {
+        UVec3::new(1, self.num_instances, 1)
     }
 }
