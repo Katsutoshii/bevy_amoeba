@@ -12,7 +12,7 @@ use bevy::{
 
 use crate::{CircleNGon, SoftBodyMaterial, SoftBodyVertex2dBuffer};
 
-#[derive(Resource, Reflect)]
+#[derive(Resource, Reflect, Clone, Debug)]
 pub struct SoftBodyAssets {
     pub material: Handle<SoftBodyMaterial>,
     pub mesh: Handle<Mesh>,
@@ -27,7 +27,7 @@ impl FromWorld for SoftBodyAssets {
                 ..default()
             }),
             mesh: world.add_asset(CircleNGon {
-                n: (SoftBodyVertex2dBuffer::NUM_VERTICES - 1) as usize,
+                n: (SoftBodyVertex2dBuffer::NUM_VERTICES_PER_INSTANCE - 1) as usize,
                 r: 1.0,
             }),
         }

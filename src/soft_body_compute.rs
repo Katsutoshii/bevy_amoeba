@@ -37,7 +37,7 @@ pub struct SoftBodyComputeUniform {
 }
 impl SoftBodyComputeUniform {
     const DEFAULT: Self = Self {
-        num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
+        num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES_PER_INSTANCE,
     };
 }
 
@@ -68,6 +68,17 @@ impl FromWorld for SoftBodyCompute {
         }
     }
 }
+impl SoftBodyCompute {
+    pub fn add_instance(&mut self) -> u32 {
+        self.num_instances += 1;
+        self.num_instances
+    }
+
+    pub fn remove_instance(&mut self) -> u32 {
+        self.num_instances -= 1;
+        self.num_instances
+    }
+}
 impl ComputeShader for SoftBodyCompute {
     fn compute_shader() -> ShaderRef {
         // ShaderRef::Path(
@@ -77,7 +88,7 @@ impl ComputeShader for SoftBodyCompute {
         "shaders/soft_body_compute.wgsl".into()
     }
     fn workgroup_size() -> UVec3 {
-        UVec3::new(128, 1, 1)
+        UVec3::new(SoftBodyVertex2dBuffer::NUM_VERTICES_PER_INSTANCE, 1, 1)
     }
     fn workgroup_count(&self) -> UVec3 {
         UVec3::new(1, self.num_instances, 1)

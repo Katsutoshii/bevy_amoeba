@@ -86,7 +86,7 @@ impl Default for SoftBodyMaterialUniform {
     fn default() -> Self {
         Self {
             color: Color::WHITE.into(),
-            num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES,
+            num_vertices_per_instance: SoftBodyVertex2dBuffer::NUM_VERTICES_PER_INSTANCE,
         }
     }
 }

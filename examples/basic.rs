@@ -80,12 +80,13 @@ struct CustomSoftBodyNode {
 }
 impl CustomSoftBodyNode {
     fn on_add(mut world: DeferredWorld, context: HookContext) {
-        let assets = world.resource::<CustomSoftBodyNodeAssets>().clone();
+        let CustomSoftBodyNodeAssets { mesh, material } =
+            world.resource::<CustomSoftBodyNodeAssets>().clone();
         let radius = world.entity(context.entity).get::<Self>().unwrap().radius;
         world.commands().entity(context.entity).insert((
             Name::new("SoftBodyNode"),
-            Mesh3d(assets.mesh.clone()),
-            MeshMaterial3d(assets.material.clone()),
+            Mesh3d(mesh),
+            MeshMaterial3d(material),
             SoftBodyNode { radius },
         ));
     }

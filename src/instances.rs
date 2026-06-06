@@ -28,9 +28,6 @@ pub struct SoftBodyInstanceData {
 
 #[derive(Resource, ExtractResource, Clone)]
 pub struct SoftBodyInstanceBuffer(pub Handle<ShaderStorageBuffer>);
-impl SoftBodyInstanceBuffer {
-    pub const NUM_INSTANCES: u32 = 3;
-}
 impl FromWorld for SoftBodyInstanceBuffer {
     fn from_world(world: &mut World) -> Self {
         Self(world.add_asset(ShaderStorageBuffer::from(Vec::<SoftBodyInstanceData>::new())))

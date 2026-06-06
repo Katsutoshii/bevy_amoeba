@@ -4,13 +4,16 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
+        lifecycle::HookContext,
         query::With,
         resource::Resource,
         schedule::IntoScheduleConfigs,
         system::{Query, Res, ResMut},
-        world::{FromWorld, World},
+        world::{DeferredWorld, FromWorld, World},
     },
     math::{Vec2, Vec3Swizzles},
+    mesh::Mesh3d,
+    pbr::MeshMaterial3d,
     reflect::Reflect,
     render::{
         extract_resource::ExtractResource, render_resource::ShaderType,
@@ -24,7 +27,10 @@ use bevy::{
     },
 };
 
-use crate::{instances::SoftBodyInstanceData, soft_body_compute::SoftBodyCompute};
+use crate::{
+    SoftBodyAssets, SoftBodyVertex2dBuffer, instances::SoftBodyInstanceData,
+    soft_body_compute::SoftBodyCompute,
+};
 
 pub struct SoftBodyNodesPlugin;
 impl Plugin for SoftBodyNodesPlugin {
@@ -74,8 +80,39 @@ impl SoftBodyNode {
 }
 
 #[derive(Component, Reflect)]
+#[component(on_add = SoftBody::on_add, on_remove = SoftBody::on_remove)]
 pub struct SoftBody(pub Vec<Entity>);
 impl SoftBody {
+    /// Initialize soft body on component add.
+    fn on_add(mut world: DeferredWorld, context: HookContext) {
+        let SoftBodyAssets { mesh, material } = world.resource::<SoftBodyAssets>().clone();
+        world
+            .commands()
+            .entity(context.entity)
+            .insert((Mesh3d(mesh), MeshMaterial3d(material)));
+
+        let num_instances = world.resource_mut::<SoftBodyCompute>().add_instance();
+        let buffer_handle = world.resource_mut::<SoftBodyVertex2dBuffer>().0.clone();
+        if let Some(buffer) = world
+            .resource_mut::<Assets<ShaderStorageBuffer>>()
+            .get_mut(&buffer_handle)
+        {
+            SoftBodyVertex2dBuffer::resize_buffer(num_instances, buffer);
+        }
+    }
+
+    /// Decrement compute counter on component remove.
+    fn on_remove(mut world: DeferredWorld, _context: HookContext) {
+        let num_instances = world.resource_mut::<SoftBodyCompute>().remove_instance();
+        let buffer_handle = world.resource_mut::<SoftBodyVertex2dBuffer>().0.clone();
+        if let Some(buffer) = world
+            .resource_mut::<Assets<ShaderStorageBuffer>>()
+            .get_mut(&buffer_handle)
+        {
+            SoftBodyVertex2dBuffer::resize_buffer(num_instances, buffer);
+        }
+    }
+
     /// Update to the center of mass of all nodes.
     pub fn update(
         mut query: Query<(&mut Transform, &Self)>,
